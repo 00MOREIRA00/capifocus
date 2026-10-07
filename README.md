@@ -17,11 +17,19 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
 - **Três modos:** Pomodoro, Pausa curta e Pausa longa, cada um com sua cor. A pausa longa entra automaticamente a cada 4 pomodoros.
 - **Controles do timer:** começar, pausar, reiniciar e pular etapa. A barra de espaço também começa e pausa.
 - **Capivara animada:** cada modo tem uma cena própria, que só ganha movimento com o timer rodando.
-- **Capi Rádio:** um lo-fi gerado ao vivo no navegador. Pode tocar só durante o foco ou também nas pausas.
+- **Capi Rádio:** música gerada ao vivo no navegador, com cinco estações:
+  - **Lo-fi clássico:** batida lenta com swing e acordes jazzy.
+  - **Anime lo-fi:** progressões de J-pop e anime (como IVmaj7–III7–vim7 e a "progressão da estrada real"), piano elétrico com chorus, bateria boom-bap que "respira" junto com os acordes, melodia em frases que se repetem com variação e vocais "aah" picotados.
+  - **Jazz café:** prato de condução, vassourinha, baixo caminhando e acordes de jazz.
+  - **Noturna:** bem lenta, com acordes longos e eco amplo.
+  - **8-bit:** chiptune com arpejos rápidos, no estilo de videogame antigo.
+
+  Troque de estação pelas setas ao lado do nome. Pode tocar só durante o foco ou também nas pausas, e a estação escolhida fica salva.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
 - **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término.
-- **Ajustes:** duração de cada modo e configurações do alarme.
-- **Tudo salvo no navegador:** tarefas, ajustes e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
+- **Temas de cor:** seis temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango e Noite) ou uma cor personalizada, escolhidos nos ajustes. Cada modo ganha um tom próprio a partir do tema.
+- **Ajustes:** duração de cada modo, tema de cor e configurações do alarme.
+- **Tudo salvo no navegador:** tarefas, ajustes, tema e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
 
 ### Como o lo-fi funciona
 
@@ -30,7 +38,7 @@ A Capi Rádio não toca nenhum arquivo de áudio nem usa streaming. A música é
 - **Bateria:** o bumbo é um tom grave que cai rápido; caixa e chimbal são ruído filtrado, com um leve swing.
 - **Acordes:** progressões jazzy (como Fmaj7, Em7, Dm7, Cmaj7) que se alternam ao longo da música.
 - **Baixo e melodia:** o baixo acompanha os acordes e notas soltas são sorteadas de uma escala pentatônica.
-- **Textura:** reverb, chiado de vinil e uma leve oscilação de fita dão o clima lo-fi.
+- **Textura:** reverb e uma leve oscilação de fita dão o clima lo-fi.
 
 Como parte das notas é sorteada, a música nunca se repete exatamente igual. E, por não usar gravações, não há questões de direitos autorais.
 
@@ -128,9 +136,8 @@ Dentro do `index.html`, as partes principais são:
 ## Personalizando
 
 - **Tempos padrão:** procure `{pomo:25,short:5,long:15}` no JavaScript.
-- **Cores:** altere as variáveis `--bg` no início do CSS (há uma para cada modo).
-- **Ritmo do lo-fi:** mude `60/72` (72 BPM) dentro do bloco `Lofi`.
-- **Acordes:** edite a lista `PROGS`, que usa notas no padrão MIDI.
+- **Cores:** pelo app, em Ajustes → Tema. No código, edite ou adicione temas na lista `THEMES` (cada um define a cor de fundo e a cor de destaque de cada modo).
+- **Estações:** cada estação fica no objeto `ST`, dentro do bloco `Lofi`, com andamento (`bpm`), swing, efeitos, progressões de acordes (`progs`, em notas MIDI) e a função `play`, que define o que toca em cada passo do compasso. Para criar uma estação nova, copie uma existente e ajuste.
 
 ---
 

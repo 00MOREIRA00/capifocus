@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Timer pomodoro com uma capivara street e lo-fi gerado no navegador.">
+<meta name="theme-color" content="#a28bd4">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23a28bd4'/%3E%3Cpath d='M9 21 C9 13 14 10 20 10 C26 10 31 13 31 21 L31.5 26 C31.5 31 26 34 20 34 C14 34 8.5 31 8.5 26 Z' fill='%23b57e52'/%3E%3Cellipse cx='20' cy='28' rx='8' ry='5' fill='%239a643c'/%3E%3Crect x='16' y='24' width='8' height='3.6' rx='1.8' fill='%233a2416'/%3E%3Ccircle cx='15' cy='20' r='1.5' fill='%2322140b'/%3E%3Ccircle cx='25' cy='20' r='1.5' fill='%2322140b'/%3E%3Cpath d='M12 14 C12 6 28 6 28 14 Z' fill='%23f2c14e'/%3E%3Cellipse cx='20' cy='14' rx='12' ry='2.6' fill='%23e3ad35'/%3E%3C/svg%3E">
+<title>Capifocus</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: uma coluna central estreita, como um app de foco; cor de fundo muda por modo. Visual único (roxo claro), sem tema escuro. */
+:root{
+  --bg:#a28bd4;          /* pomodoro: lavanda */
+  --bg-deep:#8f76c6;
+  --panel:rgba(255,255,255,.14);
+  --panel-strong:rgba(255,255,255,.22);
+  --ink:#ffffff;
+  --ink-soft:rgba(255,255,255,.78);
+  --accent-ink:#6f55ad;  /* texto do botão principal */
+  --capy:#a8744a; --capy-dark:#8a5b37; --capy-ink:#2e1c10; --yuzu:#f4b04a; --leaf:#7fb069;
+  --display:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;
+  --body:"Nunito",ui-rounded,system-ui,sans-serif;
+  color-scheme:light;
+}
+body.short{--bg:#8f9be0;--bg-deep:#7b88d2;--accent-ink:#5662b0}
+body.long{--bg:#b78ad6;--bg-deep:#a376c6;--accent-ink:#8150a6}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);transition:background-color .6s ease;-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding-inline:16px;padding-block:12px 48px;display:flex;flex-direction:column;gap:22px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.18);position:relative}
+.logo{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.2px}
+.logo svg{width:30px;height:30px}
+.hbtns{display:flex;gap:8px}
+.hbtn{font:600 13px var(--body);color:var(--ink);background:var(--panel-strong);border:0;border-radius:6px;padding:7px 12px;cursor:pointer}
+.hbtn.icon{width:36px;height:34px;padding:0;display:grid;place-items:center}
+.hbtn.icon svg{width:20px;height:20px;transition:transform .4s}
+.hbtn.icon:hover svg{transform:rotate(60deg)}
+.hbtn:hover{background:rgba(255,255,255,.3)}
+.progress{position:absolute;left:0;bottom:-1px;height:3px;background:var(--ink);border-radius:2px;width:0;transition:width .4s linear}
+
+.card{background:var(--panel);border-radius:10px;padding:20px 16px 26px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.tab{font:600 15px var(--body);color:var(--ink);background:transparent;border:0;border-radius:6px;padding:5px 12px;cursor:pointer}
+.tab[aria-pressed="true"]{background:rgba(0,0,0,.14);font-weight:800}
+.time{font-family:var(--display);font-weight:600;font-size:clamp(84px,24vw,120px);line-height:1;letter-spacing:1px;font-variant-numeric:tabular-nums;margin-top:6px}
+.controls{display:flex;align-items:center;gap:22px;margin-top:14px;position:relative}
+.main{font:800 22px var(--display);letter-spacing:1.5px;text-transform:uppercase;color:var(--accent-ink);background:var(--ink);border:0;border-radius:8px;width:200px;height:56px;cursor:pointer;box-shadow:0 6px 0 rgba(235,235,245,.9);transition:transform .08s,box-shadow .08s,color .6s}
+.main.running{transform:translateY(6px);box-shadow:none}
+.skip{background:none;border:0;color:var(--ink);cursor:pointer;padding:6px;opacity:.9;position:absolute;right:-52px}
+.skip[hidden]{display:none!important}
+.skip.reset{right:auto;left:-52px}
+.skip:hover{opacity:1}
+.skip svg{width:26px;height:26px;display:block}
+
+.capy-stage{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.capy{width:230px;max-width:100%;height:auto}
+.count{font-weight:700;color:var(--ink-soft);font-size:15px}
+.msg{font-weight:600;font-size:18px}
+.doing{font-size:13px;font-weight:700;color:var(--ink-soft);letter-spacing:.6px;text-transform:uppercase}
+/* cenas: cada modo tem seus objetos; as animações só rodam com o timer ligado */
+.capy *{transform-box:fill-box}
+.prop{opacity:0;transition:opacity .4s}
+body.pomo .prop-pomo, body.short .prop-short, body.long .prop-long{opacity:1}
+.eye-open{transition:opacity .3s} .eye-closed{opacity:0;transition:opacity .3s}
+.eye-open ellipse{transform-origin:center}
+body.short .eye-open, body.long .eye-open{opacity:0}
+body.short .eye-closed{opacity:1}
+body.pomo .eye-open ellipse{animation:blink 5s infinite}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+.breath{transform-origin:center bottom;animation:breath 4s ease-in-out infinite}
+@keyframes breath{50%{transform:scaleY(1.02)}}
+.head{transform-origin:center bottom;transition:transform .4s}
+.zzz,.heart,.steam,.note{opacity:0}
+.zzz{font-family:var(--display);font-weight:600;fill:var(--ink)}
+
+/* Pomodoro: balançando a cabeça no ritmo */
+body.pomo.running .head{animation:nod .9s ease-in-out infinite}
+@keyframes nod{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) translateY(1px)}}
+body.pomo.running .note{animation:rise 2.4s ease-out infinite}
+body.pomo.running .note:nth-of-type(2){animation-delay:.8s}
+body.pomo.running .note:nth-of-type(3){animation-delay:1.6s}
+
+/* Pausa curta: bubble tea */
+body.short.running .boba{animation:sip 1.6s ease-in-out infinite}
+@keyframes sip{50%{transform:translateY(-4px)}}
+body.short.running .mouth{animation:slurp 1.6s ease-in-out infinite;transform-origin:center}
+@keyframes slurp{50%{transform:scale(.8,1.2)}}
+body.short.running .heart{animation:rise 2.6s ease-out infinite}
+body.short.running .heart:nth-of-type(2){animation-delay:1.3s}
+body.short .head{transform:rotate(4deg)}
+
+/* Pausa longa: ofurô de óculos escuros */
+body.long .head{transform:rotate(-5deg)}
+body.long.running .zzz{animation:zz 2.6s ease-in-out infinite}
+body.long.running .zzz:nth-of-type(2){animation-delay:.6s}
+body.long.running .steam{animation:steam 3s ease-in-out infinite}
+body.long.running .steam:nth-of-type(2){animation-delay:1s}
+body.long.running .steam:nth-of-type(3){animation-delay:2s}
+body.long.running .float{animation:bob 2.2s ease-in-out infinite}
+body.long.running .float:nth-of-type(2){animation-delay:.7s}
+@keyframes bob{50%{transform:translateY(-3px) rotate(8deg)}}
+@keyframes steam{0%{opacity:0;transform:translateY(6px)}35%{opacity:.75}100%{opacity:0;transform:translateY(-22px)}}
+@keyframes zz{0%{opacity:0;transform:translateY(4px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-10px)}}
+@keyframes rise{0%{opacity:0;transform:translateY(4px) scale(.7)}30%{opacity:1}100%{opacity:0;transform:translateY(-24px) scale(1)}}
+
+.tasks-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:2px solid rgba(255,255,255,.6)}
+.tasks-head h2{font:700 18px var(--display);margin:0}
+.tasks{display:flex;flex-direction:column;gap:8px;list-style:none;margin:0;padding:0}
+.task{display:flex;align-items:center;gap:12px;background:#fff;color:#4a3d63;border-radius:8px;padding:14px 14px 14px 12px;cursor:pointer;border-left:6px solid transparent;box-shadow:0 8px 18px rgba(60,30,110,.12)}
+.task.active{border-left-color:#4a3d63}
+.task .chk{flex:none;width:24px;height:24px;border-radius:50%;border:0;background:#ddd6ec;cursor:pointer;display:grid;place-items:center;color:#fff}
+.task.done .chk{background:var(--accent-ink)}
+.task .name{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere}
+.task.done .name{text-decoration:line-through;opacity:.5}
+.task .pom{font-weight:700;color:#a99cc0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.task .pom b{color:#6d5f86;font-size:17px}
+.task .del{background:none;border:0;color:#b8afc9;font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+.add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font:700 15px var(--body);color:var(--ink-soft);background:rgba(0,0,0,.08);border:2px dashed rgba(255,255,255,.45);border-radius:8px;padding:18px;cursor:pointer}
+.add:hover{color:var(--ink);background:rgba(0,0,0,.12)}
+form.newtask{background:#fff;color:#4a3d63;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px}
+form.newtask input[type=text]{font:700 18px var(--body);border:0;outline:0;color:#4a3d63;padding:6px 0}
+form.newtask label{font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px}
+form.newtask input[type=number]{width:70px;font:700 15px var(--body);background:#efebf6;border:0;border-radius:6px;padding:8px;color:#4a3d63}
+.frow{display:flex;justify-content:flex-end;gap:8px}
+.btn-ghost{font:700 14px var(--body);background:none;border:0;color:#8c80a3;cursor:pointer;padding:8px 12px}
+.btn-dark{font:700 14px var(--body);background:#3f3456;color:#fff;border:0;border-radius:6px;cursor:pointer;padding:8px 16px}
+.summary{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;background:rgba(255,255,255,.12);border-top:1px solid rgba(255,255,255,.4);padding:14px;border-radius:0 0 8px 8px;font-weight:600;color:var(--ink-soft)}
+.summary b{color:var(--ink);font-size:18px;font-variant-numeric:tabular-nums}
+
+.settings{background:#fff;color:#4a3d63;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 30px rgba(60,30,110,.25)}
+.settings h3{margin:0;font:700 16px var(--display);color:#8c80a3;text-transform:uppercase;letter-spacing:1px}
+.srow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.srow label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#8c80a3}
+.srow input{font:700 16px var(--body);background:#efebf6;border:0;border-radius:6px;padding:9px;color:#4a3d63;width:100%;box-sizing:border-box}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.task button:focus-visible, .settings input:focus-visible, form.newtask input:focus-visible{outline-color:var(--accent-ink)}
+.player{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border-radius:12px;padding:10px 14px}
+.play{flex:none;width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(235,235,245,.85);transition:transform .08s,box-shadow .08s,color .6s}
+.play:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(235,235,245,.85)}
+.play svg{width:20px;height:20px}
+.play .i-pause{display:none}
+.player.on .play .i-play{display:none}.player.on .play .i-pause{display:block}
+.pinfo{flex:1;min-width:120px;display:flex;flex-direction:column;gap:1px}
+.pinfo b{font:700 16px var(--display);display:flex;align-items:center;gap:8px}
+.pinfo span{font-size:13px;font-weight:600;color:var(--ink-soft)}
+.eq{display:inline-flex;align-items:flex-end;gap:2px;height:12px}
+.eq i{display:block;width:3px;height:3px;border-radius:2px;background:currentColor}
+.player.on .eq i{animation:eq .9s ease-in-out infinite}
+.player.on .eq i:nth-child(2){animation-delay:.2s}.player.on .eq i:nth-child(3){animation-delay:.45s}.player.on .eq i:nth-child(4){animation-delay:.1s}
+@keyframes eq{0%,100%{height:3px}50%{height:12px}}
+.pctl{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.vol{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink-soft)}
+.vol input{width:90px;accent-color:#fff}
+.switch{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+.switch input{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:999px;background:rgba(0,0,0,.18);position:relative;cursor:pointer;margin:0;transition:background .2s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+.switch input:checked{background:rgba(255,255,255,.55)}
+.switch input:checked::after{transform:translateX(14px);background:var(--accent-ink)}
+.arow{display:grid;grid-template-columns:1.5fr .8fr 1.3fr auto;gap:10px;align-items:end}
+.arow label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#8c80a3;min-width:0}
+.arow select,.arow input[type=number]{font:700 15px var(--body);background:#efebf6;border:0;border-radius:6px;padding:9px;color:#4a3d63;width:100%;box-sizing:border-box}
+.arow input[type=range]{accent-color:var(--accent-ink);width:100%;height:36px;margin:0}
+.btn-test{font:700 14px var(--body);background:#efebf6;color:#4a3d63;border:0;border-radius:6px;cursor:pointer;padding:9px 14px;height:37px}
+.btn-test:hover{background:#e2dbf0}
+@media (max-width:440px){.arow{grid-template-columns:1fr 1fr}}
+body.ringing .time{animation:ring .5s ease-in-out infinite}
+@keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(-2deg) scale(1.03)}75%{transform:rotate(2deg) scale(1.03)}}
+footer{text-align:center;color:var(--ink-soft);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:440px){.skip{right:-44px}.skip.reset{right:auto;left:-44px}.main{width:170px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#fff"/><path d="M9 21 C9 13 14 10 20 10 C26 10 31 13 31 21 L31.5 26 C31.5 31 26 34 20 34 C14 34 8.5 31 8.5 26 Z" fill="#b57e52"/><ellipse cx="20" cy="28" rx="8" ry="5" fill="#9a643c"/><rect x="16" y="24" width="8" height="3.6" rx="1.8" fill="#3a2416"/><circle cx="15" cy="20" r="1.5" fill="#22140b"/><circle cx="25" cy="20" r="1.5" fill="#22140b"/><path d="M12 14 C12 6 28 6 28 14 Z" fill="#f2c14e"/><ellipse cx="20" cy="14" rx="12" ry="2.6" fill="#e3ad35"/></svg>
+      Capifocus
+    </div>
+    <div class="hbtns">
+      <button class="hbtn icon" id="btn-settings" type="button" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+    <div class="progress" id="progress"></div>
+  </header>
+
+  <section class="settings" id="settings" hidden>
+    <h3>Tempo (minutos)</h3>
+    <div class="srow">
+      <label for="set-pomo">Pomodoro<input id="set-pomo" type="number" min="1" max="120" value="25"></label>
+      <label for="set-short">Pausa curta<input id="set-short" type="number" min="1" max="60" value="5"></label>
+      <label for="set-long">Pausa longa<input id="set-long" type="number" min="1" max="60" value="15"></label>
+    </div>
+    <h3>Alarme</h3>
+    <div class="arow">
+      <label for="al-sound">Som<select id="al-sound"><option value="sino">Sininho</option><option value="marimba">Marimba</option><option value="capi">Capi jingle</option><option value="despertador">Despertador</option></select></label>
+      <label for="al-rep">Repetir<input id="al-rep" type="number" min="1" max="10" value="3"></label>
+      <label for="al-vol">Volume<input id="al-vol" type="range" min="0" max="100" value="80"></label>
+      <button class="btn-test" id="al-test" type="button">Testar</button>
+    </div>
+    <div class="frow"><button class="btn-dark" id="save-settings" type="button">Salvar</button></div>
+  </section>
+
+  <section class="card" aria-label="Timer">
+    <div class="tabs" role="group" aria-label="Modo">
+      <button class="tab" data-mode="pomo" aria-pressed="true" type="button">Pomodoro</button>
+      <button class="tab" data-mode="short" aria-pressed="false" type="button">Pausa curta</button>
+      <button class="tab" data-mode="long" aria-pressed="false" type="button">Pausa longa</button>
+    </div>
+    <div class="time" id="time" aria-live="off">25:00</div>
+    <div class="controls">
+      <button class="skip reset" id="reset" type="button" aria-label="Reiniciar tempo" title="Reiniciar tempo" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>
+      </button>
+      <button class="main" id="main" type="button">Começar</button>
+      <button class="skip" id="skip" type="button" aria-label="Pular para a próxima etapa" title="Pular para a próxima etapa" hidden>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4.5v15a1 1 0 0 0 1.55.83l11-7.5a1 1 0 0 0 0-1.66l-11-7.5A1 1 0 0 0 5 4.5z"/><rect x="18.5" y="4" width="2.5" height="16" rx="1"/></svg>
+      </button>
+    </div>
+  </section>
+  <div class="player" id="player" aria-label="Capi Rádio">
+    <button class="play" id="mus-play" type="button" aria-label="Tocar lo-fi">
+      <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.5" height="14" rx="1.5"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.5"/></svg>
+    </button>
+    <div class="pinfo"><b>Capi Rádio <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></b><span id="mus-status">Lo-fi ao vivo · toca junto com o timer</span></div>
+    <div class="pctl">
+      <label class="vol" for="snd-vol">Vol <input id="snd-vol" type="range" min="0" max="100" value="55"></label>
+      <label class="switch" for="mus-breaks"><input id="mus-breaks" type="checkbox"> Tocar nas pausas</label>
+    </div>
+  </div>
+
+  <div class="capy-stage">
+    <svg class="capy" viewBox="0 0 240 165" role="img" aria-label="Capivara de chapéu bucket e moletom">
+      <defs>
+        <radialGradient id="fur" cx=".45" cy=".35" r=".75"><stop offset="0" stop-color="#c99566"/><stop offset="1" stop-color="#a87148"/></radialGradient>
+      </defs>
+      <ellipse cx="120" cy="159" rx="72" ry="6" fill="rgba(0,0,0,.14)"/>
+      <g class="breath">
+        <!-- moletom -->
+        <ellipse cx="120" cy="104" rx="44" ry="12" fill="#3d3058"/>
+        <path d="M62 150 C58 116 78 96 120 96 C162 96 182 116 178 150 C170 158 70 158 62 150 Z" fill="#2b2140"/>
+        <path d="M96 130 H144 L139 148 H101 Z" fill="#241b38" stroke="#3d3058" stroke-width="2" stroke-linejoin="round"/>
+        <g stroke="#ece8f5" stroke-width="2.4" stroke-linecap="round"><path d="M112 104 L110 122"/><path d="M128 104 L130 122"/></g>
+        <!-- corrente -->
+        <path d="M94 101 Q120 128 146 101" stroke="#f2c14e" stroke-width="3.2" fill="none" stroke-dasharray="4 2"/>
+        <circle cx="120" cy="116" r="7" fill="#f2c14e" stroke="#c9952a" stroke-width="1.5"/>
+        <text x="120" y="119.5" text-anchor="middle" font-family="Fredoka,sans-serif" font-weight="700" font-size="9" fill="#8a5f12">C</text>
+        <!-- mãos -->
+        <ellipse cx="72" cy="132" rx="10" ry="11" fill="url(#fur)"/>
+        <ellipse cx="168" cy="132" rx="10" ry="11" fill="url(#fur)"/>
+        <path d="M63 124 q9 -5 18 0 M159 124 q9 -5 18 0" stroke="#3d3058" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <!-- tênis -->
+        <g>
+          <rect x="80" y="144" width="36" height="15" rx="7.5" fill="#fff"/>
+          <rect x="124" y="144" width="36" height="15" rx="7.5" fill="#fff"/>
+          <path d="M82 155 h32 M126 155 h32" stroke="#e07a9b" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M92 147 l6 3 M98 146 l6 3 M136 146 l6 3 M142 147 l6 3" stroke="#bdb3d3" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+        <g class="head">
+          <!-- orelhas -->
+          <ellipse cx="82" cy="44" rx="7" ry="6.5" fill="#94603a"/>
+          <ellipse cx="158" cy="44" rx="7" ry="6.5" fill="#94603a"/>
+          <ellipse cx="83" cy="45" rx="3.4" ry="3" fill="#6e4428"/>
+          <ellipse cx="157" cy="45" rx="3.4" ry="3" fill="#6e4428"/>
+          <!-- cabeça -->
+          <path d="M78 58 C78 32 98 22 120 22 C142 22 162 32 162 58 L164 78 C164 96 146 106 120 106 C94 106 76 96 76 78 Z" fill="url(#fur)"/>
+          <ellipse cx="120" cy="83" rx="34" ry="22" fill="#9a643c"/>
+          <rect x="105" y="70" width="30" height="13" rx="6.5" fill="#3a2416"/>
+          <ellipse cx="113" cy="74" rx="3" ry="1.6" fill="#6e4a33"/>
+          <ellipse cx="127" cy="74" rx="3" ry="1.6" fill="#6e4a33"/>
+          <path class="mouth" d="M111 91 q4.5 4.5 9 0 q4.5 4.5 9 0" stroke="#3a2416" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <ellipse cx="90" cy="76" rx="7" ry="4" fill="#ef8fa3" opacity=".5"/>
+          <ellipse cx="150" cy="76" rx="7" ry="4" fill="#ef8fa3" opacity=".5"/>
+          <!-- olhos -->
+          <g class="eye-open">
+            <ellipse cx="98" cy="58" rx="4.6" ry="5.4" fill="#22140b"/>
+            <ellipse cx="142" cy="58" rx="4.6" ry="5.4" fill="#22140b"/>
+            <circle cx="99.8" cy="56" r="1.7" fill="#fff"/><circle cx="143.8" cy="56" r="1.7" fill="#fff"/>
+          </g>
+          <g class="eye-closed" stroke="#22140b" stroke-width="2.6" fill="none" stroke-linecap="round">
+            <path d="M92 58 q6 5 12 0"/><path d="M136 58 q6 5 12 0"/>
+          </g>
+          <!-- bucket hat -->
+          <path d="M87 36 C88 12 152 12 153 36 Z" fill="#f2c14e"/>
+          <path d="M88 31 H152" stroke="#2b2140" stroke-width="4.5"/>
+          <ellipse cx="120" cy="37" rx="47" ry="8.5" fill="#e3ad35"/>
+          <path d="M104 18 q8 -3 16 -3" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".5"/>
+          <!-- óculos escuros (pausa longa) -->
+          <g class="prop prop-long">
+            <rect x="85" y="49" width="27" height="16" rx="7" fill="#1d1530"/>
+            <rect x="128" y="49" width="27" height="16" rx="7" fill="#1d1530"/>
+            <path d="M112 54 h16" stroke="#1d1530" stroke-width="3"/>
+            <path d="M89 53 l7 0 M132 53 l7 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+          </g>
+          <!-- fone (pomodoro) -->
+          <g class="prop prop-pomo">
+            <path d="M74 62 C70 4 170 4 166 62" stroke="#e07a9b" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <rect x="64" y="48" width="17" height="27" rx="8.5" fill="#e07a9b" stroke="#2b2140" stroke-width="2.5"/>
+            <rect x="159" y="48" width="17" height="27" rx="8.5" fill="#e07a9b" stroke="#2b2140" stroke-width="2.5"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- Pomodoro: curtindo o som -->
+      <g class="prop prop-pomo" fill="var(--ink)" font-family="Fredoka,sans-serif" font-weight="700">
+        <text class="note" x="186" y="52" font-size="20">♪</text>
+        <text class="note" x="36" y="62" font-size="18">♫</text>
+        <text class="note" x="200" y="86" font-size="14">♪</text>
+      </g>
+
+      <!-- Pausa curta: bubble tea -->
+      <g class="prop prop-short">
+        <path d="M172 98 L130 90" stroke="#f2c14e" stroke-width="4" stroke-linecap="round"/>
+        <path d="M157 100 H181 L177 134 H161 Z" fill="rgba(255,255,255,.85)"/>
+        <path d="M158.2 110 H179.8 L177 134 H161 Z" fill="#c9a27a"/>
+        <g class="boba" fill="#3a2416"><circle cx="164" cy="129" r="2.6"/><circle cx="170" cy="130" r="2.6"/><circle cx="175" cy="128" r="2.6"/><circle cx="167" cy="124" r="2.6"/><circle cx="173" cy="123" r="2.6"/></g>
+        <rect x="155" y="96" width="28" height="6" rx="3" fill="#e07a9b"/>
+        <ellipse cx="160" cy="124" rx="9.5" ry="10.5" fill="url(#fur)"/>
+        <g fill="#ffd6e4">
+          <path class="heart" d="M196 62 c-3-4-9-1-6 4 l6 5 6-5 c3-5-3-8-6-4z"/>
+          <path class="heart" d="M210 78 c-2-3-7-1-5 3 l5 4 5-4 c2-4-3-6-5-3z"/>
+        </g>
+      </g>
+
+      <!-- Pausa longa: ofurô -->
+      <g class="prop prop-long">
+        <rect x="40" y="110" width="160" height="50" rx="9" fill="#c98b55"/>
+        <rect x="40" y="106" width="160" height="9" rx="4.5" fill="#9fd3e6"/>
+        <rect x="40" y="122" width="160" height="4" fill="#8a5b37"/>
+        <rect x="40" y="145" width="160" height="4" fill="#8a5b37"/>
+        <g stroke="#b07646" stroke-width="1.5"><path d="M72 115v45M104 115v45M136 115v45M168 115v45"/></g>
+        <g>
+          <g class="float"><circle cx="66" cy="107" r="7.5" fill="var(--yuzu)"/></g>
+          <g class="float"><circle cx="176" cy="108" r="6.5" fill="var(--yuzu)"/></g>
+        </g>
+        <g stroke="var(--ink)" stroke-width="2.4" fill="none" stroke-linecap="round">
+          <path class="steam" d="M54 96 q-5 -6 0 -12 q5 -6 0 -12"/>
+          <path class="steam" d="M188 96 q-5 -6 0 -12 q5 -6 0 -12"/>
+          <path class="steam" d="M204 100 q-5 -6 0 -12 q5 -6 0 -12"/>
+        </g>
+        <text class="zzz" x="176" y="30" font-size="18">z</text>
+        <text class="zzz" x="190" y="18" font-size="13">z</text>
+      </g>
+    </svg>
+    <div class="doing" id="doing">Esperando você</div>
+    <div class="count" id="count">#1</div>
+    <div class="msg" id="msg">Hora de focar!</div>
+  </div>
+
+  <section>
+    <div class="tasks-head"><h2>Tarefas</h2></div>
+    <ul class="tasks" id="tasks" style="margin-top:16px"></ul>
+    <form class="newtask" id="newtask" hidden style="margin-top:8px">
+      <input id="nt-name" type="text" placeholder="No que você vai trabalhar?" autocomplete="off" required>
+      <label for="nt-est">Pomodoros estimados <input id="nt-est" type="number" min="1" max="20" value="1"></label>
+      <div class="frow"><button type="button" class="btn-ghost" id="nt-cancel">Cancelar</button><button type="submit" class="btn-dark">Salvar</button></div>
+    </form>
+    <button class="add" id="add" type="button" style="margin-top:10px">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M12 7v10M7 12h10" stroke="var(--bg)" stroke-width="2.6" stroke-linecap="round"/></svg>
+      Adicionar tarefa
+    </button>
+    <div class="summary" id="summary" style="margin-top:22px"></div>
+  </section>
+
+  <footer>Feito com calma de capivara.</footer>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+  const MSG={pomo:"Hora de focar!",short:"Hora de uma pausa!",long:"Pausa longa. Relaxa no ofurô."};
+  let mins=store.get("capi-mins",{pomo:25,short:5,long:15});
+  let tasks=store.get("capi-tasks",[
+    {id:1,name:"Revisar a pauta da semana (exemplo)",est:3,act:1,done:false},
+    {id:2,name:"Responder e-mails (exemplo)",est:1,act:0,done:false}
+  ]);
+  let activeId=store.get("capi-active",tasks[0]?tasks[0].id:null);
+  let count=store.get("capi-count",1);
+  let mode="pomo", left=mins.pomo*60, total=left, running=false, endAt=0, tick=null;
+
+  const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  function render(){
+    $("#time").textContent=fmt(left);
+    $("#progress").style.width=((1-left/total)*100)+"%";
+    $("#main").textContent=running?"Pausar":"Começar";
+    $("#main").classList.toggle("running",running);
+    $("#skip").hidden=!(running||left<total);
+    $("#reset").hidden=!(left<total);
+    document.body.className=mode+(running?" running":"")+(window.__ring?" ringing":"");
+    const DO={pomo:"No foco, curtindo um lo-fi",short:"Pausa pro bubble tea",long:"Relaxando no ofurô"};
+    $("#doing").textContent=running?DO[mode]:"Esperando você começar";
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-pressed",t.dataset.mode===mode));
+    $("#count").textContent="#"+count;
+    const a=tasks.find(t=>t.id===activeId);
+    $("#msg").textContent=(mode==="pomo"&&a&&!a.done)?a.name:MSG[mode];
+  }
+  function setMode(m,auto){
+    if(running&&!auto)return confirmSwitch(m);
+    stop();mode=m;left=total=mins[m]*60;render();
+  }
+  function confirmSwitch(m){stop();mode=m;left=total=mins[m]*60;render();}
+  function start(){running=true;endAt=Date.now()+left*1000;tick=setInterval(step,250);render();}
+  function stop(){running=false;clearInterval(tick);render();}
+  function step(){
+    left=Math.max(0,Math.round((endAt-Date.now())/1000));
+    if(left===0){finish();return}
+    render();
+  }
+  var finish=function(){
+    stop();if(!skipping)chime();skipping=false;
+    if(mode==="pomo"){
+      const a=tasks.find(t=>t.id===activeId);if(a){a.act++;saveTasks();}
+      const next=(count%4===0)?"long":"short";count++;store.set("capi-count",count);
+      setMode(next,true);
+    }else setMode("pomo",true);
+  }
+  let ctx;
+  let skipping=false;
+  let alarmTimers=[];
+  const ALARMS={
+    sino:{rep:1.6,play(t,out){[[880,0],[1318.5,.22],[1760,.44]].forEach(([fq,d])=>bell(t+d,fq,1.6,.5,out));}},
+    despertador:{rep:1.1,play(t,out){for(let i=0;i<4;i++){beep(t+i*.14,1046,.09,"square",.18,out);}}},
+    marimba:{rep:1.4,play(t,out){[523.25,659.25,783.99,1046.5].forEach((fq,i)=>mar(t+i*.13,fq,out));}},
+    capi:{rep:1.8,play(t,out){[[392,0],[523.25,.16],[659.25,.32],[523.25,.56],[783.99,.72]].forEach(([fq,d])=>mar(t+d,fq,out));}}
+  };
+  function bell(t,fq,dec,peak,out){[[1,1],[2.76,.35],[5.4,.12]].forEach(([r,a])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=fq*r;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak*a,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+dec/r);o.connect(g).connect(out);o.start(t);o.stop(t+dec+.05);});}
+  function beep(t,fq,len,type,peak,out){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=fq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+.005);g.gain.setValueAtTime(peak,t+len-.01);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(g).connect(out);o.start(t);o.stop(t+len+.02);}
+  function mar(t,fq,out){bell(t,fq,.7,.55,out);const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=fq*4;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.08,t+.003);g.gain.exponentialRampToValueAtTime(.0001,t+.08);o.connect(g).connect(out);o.start(t);o.stop(t+.1);}
+  let alarm=store.get("capi-alarm",{sound:"sino",rep:3,vol:80});
+  function chime(){
+    try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();
+      stopAlarm();
+      const A=ALARMS[alarm.sound]||ALARMS.sino,out=ctx.createGain();out.gain.value=alarm.vol/100*1.2;out.connect(ctx.destination);
+      const t0=ctx.currentTime+.05;for(let i=0;i<alarm.rep;i++)A.play(t0+i*A.rep,out);
+      const total=alarm.rep*A.rep+.6;
+      if(typeof Lofi!=="undefined")Lofi.duck(total);
+      window.__ring=true;document.body.classList.add("ringing");alarmTimers.push(setTimeout(()=>{window.__ring=false;document.body.classList.remove("ringing")},total*1000));
+      alarmTimers.push(out);
+    }catch(e){}
+  }
+  function stopAlarm(){alarmTimers.forEach(x=>{if(typeof x==="number")clearTimeout(x);else try{x.gain.setTargetAtTime(0,ctx.currentTime,.03)}catch(e){}});alarmTimers=[];window.__ring=false;document.body.classList.remove("ringing");}
+
+  $("#main").addEventListener("click",()=>{ensureAudio();stopAlarm(); running?stop():start();});
+  $("#skip").addEventListener("click",()=>{skipping=true;left=0;finish();});
+  $("#reset").addEventListener("click",()=>{stop();left=total;render();});
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setMode(t.dataset.mode)));
+  document.addEventListener("keydown",e=>{if(e.code==="Space"&&!/INPUT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();$("#main").click();}});
+
+  // tarefas
+  function saveTasks(){store.set("capi-tasks",tasks);store.set("capi-active",activeId);renderTasks();render();}
+  function renderTasks(){
+    const ul=$("#tasks");ul.innerHTML="";
+    tasks.forEach(t=>{
+      const li=document.createElement("li");li.className="task"+(t.id===activeId?" active":"")+(t.done?" done":"");
+      li.innerHTML='<button class="chk" type="button" aria-label="Concluir"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="name"></span><span class="pom"><b>'+t.act+'</b>/'+t.est+'</span><button class="del" type="button" aria-label="Remover">×</button>';
+      li.querySelector(".name").textContent=t.name;
+      li.addEventListener("click",()=>{activeId=t.id;saveTasks();});
+      li.querySelector(".chk").addEventListener("click",e=>{e.stopPropagation();t.done=!t.done;saveTasks();});
+      li.querySelector(".del").addEventListener("click",e=>{e.stopPropagation();tasks=tasks.filter(x=>x.id!==t.id);if(activeId===t.id)activeId=tasks[0]?tasks[0].id:null;saveTasks();});
+      ul.appendChild(li);
+    });
+    const pend=tasks.filter(t=>!t.done),rem=pend.reduce((s,t)=>s+Math.max(0,t.est-t.act),0);
+    const fin=new Date(Date.now()+rem*mins.pomo*60000+Math.max(0,rem-1)*mins.short*60000);
+    $("#summary").innerHTML='<span>Pomos: <b>'+tasks.reduce((s,t)=>s+t.act,0)+'/'+tasks.reduce((s,t)=>s+t.est,0)+'</b></span><span>Termina às <b>'+fin.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'</b> ('+(rem*mins.pomo/60).toFixed(1).replace(".",",")+'h)</span>';
+    $("#summary").hidden=!tasks.length;
+  }
+  $("#add").addEventListener("click",()=>{$("#newtask").hidden=false;$("#add").hidden=true;$("#nt-name").focus();});
+  $("#nt-cancel").addEventListener("click",()=>{$("#newtask").hidden=true;$("#add").hidden=false;});
+  $("#newtask").addEventListener("submit",e=>{e.preventDefault();const n=$("#nt-name").value.trim();if(!n)return;
+    const t={id:Date.now(),name:n,est:Math.max(1,+$("#nt-est").value||1),act:0,done:false};tasks.push(t);if(!activeId)activeId=t.id;
+    $("#nt-name").value="";$("#nt-est").value=1;$("#newtask").hidden=true;$("#add").hidden=false;saveTasks();});
+
+  // ajustes
+  $("#set-pomo").value=mins.pomo;$("#set-short").value=mins.short;$("#set-long").value=mins.long;
+  $("#btn-settings").addEventListener("click",()=>{$("#settings").hidden=!$("#settings").hidden;});
+  $("#save-settings").addEventListener("click",()=>{
+    const c=(v,d)=>Math.min(120,Math.max(1,parseInt(v)||d));
+    mins={pomo:c($("#set-pomo").value,25),short:c($("#set-short").value,5),long:c($("#set-long").value,15)};
+    store.set("capi-mins",mins);$("#settings").hidden=true;setMode(mode,true);renderTasks();
+  });
+
+  // ---------- Capi Rádio: lo-fi gerado no navegador ----------
+  const Lofi=(()=>{
+    let c,master,music,dry,wet,wow,timer=null,stopT=null,next=0,step=0,bar=0,prog=0,noise,on=false;
+    const spb=60/72, s16=spb/4;
+    // progressões (acordes em MIDI) e baixos
+    const PROGS=[
+      {ch:[[53,57,60,64],[52,55,59,62],[50,53,57,60],[48,52,55,59]],bs:[41,40,38,36]},       // Fmaj7 Em7 Dm7 Cmaj7
+      {ch:[[57,60,64,67],[50,53,57,60,64],[55,59,62,65],[48,52,55,59,62]],bs:[45,38,43,36]}, // Am7 Dm9 G7 Cmaj9
+      {ch:[[50,53,57,60],[55,59,62,65],[52,55,59,62],[57,60,64,67]],bs:[38,43,40,45]}        // Dm7 G7 Em7 Am7
+    ];
+    const PENTA=[69,72,74,76,79,81];
+    const f=m=>440*Math.pow(2,(m-69)/12);
+    function init(ctx){
+      if(c)return;c=ctx;
+      master=c.createGain();master.gain.value=vol();master.connect(c.destination);
+      const comp=c.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(master);
+      const lp=c.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2000;lp.Q.value=.5;lp.connect(comp);
+      // filtro "respirando" devagar, efeito fita
+      const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=.07;lg.gain.value=500;lfo.connect(lg).connect(lp.frequency);lfo.start();
+      music=c.createGain();music.gain.value=0;music.connect(lp);
+      dry=c.createGain();dry.connect(music);
+      // reverb gerado
+      const ir=c.createBuffer(2,c.sampleRate*2.6,c.sampleRate);
+      for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);}
+      const conv=c.createConvolver();conv.buffer=ir;wet=c.createGain();wet.gain.value=.32;dry.connect(conv).connect(wet).connect(music);
+      // oscilação de fita (wow) aplicada aos instrumentos tonais
+      wow=c.createGain();wow.gain.value=7;const wo=c.createOscillator();wo.frequency.value=.55;wo.connect(wow);wo.start();
+      noise=c.createBuffer(1,c.sampleRate*2,c.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+      // chiado de vinil
+      const cb=c.createBuffer(1,c.sampleRate*3,c.sampleRate),cd=cb.getChannelData(0);
+      for(let i=0;i<cd.length;i++)cd[i]=(Math.random()<.0006?(Math.random()*2-1)*.8:0)+(Math.random()*2-1)*.01;
+      const cs=c.createBufferSource();cs.buffer=cb;cs.loop=true;const cg=c.createGain();cg.gain.value=.45;cs.connect(cg).connect(music);cs.start();
+    }
+    function env(g,t,peak,a,dec){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec);}
+    function nz(t,type,freq,peak,dec){const s=c.createBufferSource();s.buffer=noise;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=freq;const g=c.createGain();env(g,t,peak,.003,dec);s.connect(fl).connect(g).connect(dry);s.start(t,Math.random());s.stop(t+dec+.05);}
+    function kick(t){const o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(40,t+.15);env(g,t,.85,.004,.36);o.connect(g).connect(music);o.start(t);o.stop(t+.42);}
+    function tone(t,m,type,peak,a,dec,det,dest){const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f(m);o.detune.value=det||0;wow.connect(o.detune);env(g,t,peak,a,dec);o.connect(g).connect(dest||dry);o.start(t);o.stop(t+a+dec+.05);}
+    function chord(t,notes,len,lvl){notes.forEach((m,i)=>{const tt=t+i*.022;tone(tt,m,"triangle",.04*lvl,.04,len,-7);tone(tt,m,"sine",.055*lvl,.04,len,6);});}
+    function play(i,t){
+      const P=PROGS[prog];t+=(i%4===2)?s16*.3:0;
+      if(i===0||i===7||(i===10&&bar%2===0))kick(t);
+      if(i===4||i===12)nz(t,"bandpass",1600,.24,.18);
+      if(i%2===0)nz(t,"highpass",7800,i%4===0?.06:.035,.04);
+      if(i===15&&Math.random()<.3)nz(t,"highpass",7800,.03,.03);
+      if(i===0)chord(t,P.ch[bar],spb*3.6,1);
+      if(i===10)chord(t,P.ch[bar],spb*1.4,.45);
+      if(i===0)tone(t,P.bs[bar],"sine",.34,.012,spb*2,0,music);
+      if(i===10)tone(t,P.bs[bar]+(Math.random()<.5?0:7),"sine",.26,.012,spb*1.2,0,music);
+      if(i%2===0&&Math.random()<.16)tone(t,PENTA[Math.floor(Math.random()*PENTA.length)],"sine",.045,.02,spb*1.1);
+    }
+    function sched(){while(next<c.currentTime+.15){play(step,next);next+=s16;step=(step+1)%16;if(step===0){bar=(bar+1)%4;if(bar===0&&Math.random()<.5)prog=Math.floor(Math.random()*PROGS.length);}}}
+    function vol(){return (+document.getElementById("snd-vol").value||0)/100*.85;}
+    return{
+      init,
+      setVol(){if(master)master.gain.setTargetAtTime(vol(),c.currentTime,.05);},
+      duck(sec){if(!master)return;const n=c.currentTime;master.gain.cancelScheduledValues(n);master.gain.setValueAtTime(master.gain.value,n);master.gain.linearRampToValueAtTime(vol()*.15,n+.2);master.gain.setValueAtTime(vol()*.15,n+sec);master.gain.linearRampToValueAtTime(vol(),n+sec+1.2);},
+      music(want){
+        if(!c||want===on)return;on=want;const now=c.currentTime;
+        music.gain.cancelScheduledValues(now);music.gain.setValueAtTime(music.gain.value,now);
+        if(want){clearTimeout(stopT);if(!timer){next=now+.06;step=0;bar=0;timer=setInterval(sched,25);}music.gain.linearRampToValueAtTime(1,now+1.5);}
+        else{music.gain.linearRampToValueAtTime(0,now+1);stopT=setTimeout(()=>{clearInterval(timer);timer=null;},1100);}
+      }
+    };
+  })();
+  let snd=store.get("capi-snd2",{lofi:true,vol:55,breaks:false});
+  let playing=false;
+  $("#snd-vol").value=snd.vol;$("#mus-breaks").checked=snd.breaks;
+  const allowed=m=>m==="pomo"||snd.breaks;
+  function ensureAudio(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();Lofi.init(ctx);}catch(e){}}
+  function setPlaying(v){playing=v;Lofi.music(v);playerUI();}
+  function playerUI(){
+    $("#player").classList.toggle("on",playing);
+    $("#mus-play").setAttribute("aria-label",playing?"Pausar lo-fi":"Tocar lo-fi");
+    $("#mus-status").textContent=playing?"Tocando lo-fi ao vivo · 72 BPM":(snd.lofi?"Lo-fi ao vivo · toca junto com o timer":"Desligado · aperte play para ouvir");
+  }
+  function saveSnd(){store.set("capi-snd2",snd);playerUI();}
+  $("#mus-play").addEventListener("click",()=>{ensureAudio();setPlaying(!playing);snd.lofi=playing;saveSnd();});
+  $("#snd-vol").addEventListener("input",()=>{snd.vol=+$("#snd-vol").value;Lofi.setVol();saveSnd();});
+  $("#mus-breaks").addEventListener("change",()=>{snd.breaks=$("#mus-breaks").checked;saveSnd();
+    if(playing&&!allowed(mode))setPlaying(false);
+    else if(!playing&&snd.lofi&&running&&allowed(mode)){ensureAudio();setPlaying(true);}});
+  // o som acompanha o timer
+  $("#main").addEventListener("click",()=>{if(running&&!playing&&snd.lofi&&allowed(mode))setPlaying(true);});
+  const _finish=finish;finish=function(){_finish();if(playing&&!allowed(mode))setPlaying(false);};
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{if(playing&&!allowed(mode))setPlaying(false);}));
+  playerUI();
+  $("#al-sound").value=alarm.sound;$("#al-rep").value=alarm.rep;$("#al-vol").value=alarm.vol;
+  function readAlarm(){alarm={sound:$("#al-sound").value,rep:Math.min(10,Math.max(1,parseInt($("#al-rep").value)||1)),vol:+$("#al-vol").value};store.set("capi-alarm",alarm);}
+  ["#al-sound","#al-rep","#al-vol"].forEach(id=>$(id).addEventListener("change",readAlarm));
+  $("#al-test").addEventListener("click",()=>{readAlarm();const r=alarm.rep;alarm.rep=1;chime();alarm.rep=r;});
+  renderTasks();render();
+})();
+</script>
+</body>
+</html>

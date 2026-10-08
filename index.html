@@ -143,14 +143,33 @@ body.long.running .float:nth-of-type(2){animation-delay:.7s}
 .task .chk{flex:none;width:24px;height:24px;border-radius:50%;border:0;background:#ddd6ec;cursor:pointer;display:grid;place-items:center;color:#fff}
 .task.done .chk{background:var(--accent-ink)}
 .task .name{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere}
-.task.done .name{text-decoration:line-through;opacity:.5}
+.task .nt{background:linear-gradient(currentColor,currentColor) 0 55%/0 2px no-repeat;transition:background-size .45s ease,opacity .45s ease}
+.task.done .nt{background-size:100% 2px;opacity:.5}
+.task.just-done .nt{background-size:0 2px;opacity:1;animation:strike .5s .1s ease forwards}
+@keyframes strike{to{background-size:100% 2px;opacity:.5}}
+.task.just-done .chk{animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(.5)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+.task.just-done{animation:glow .9s ease}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(242,193,78,.7)}100%{box-shadow:0 0 0 14px rgba(242,193,78,0)}}
+.confetti{position:fixed;z-index:80;width:8px;height:8px;border-radius:2px;pointer-events:none;will-change:transform,opacity}
+.capy-stage{position:relative}
+.cheer{position:absolute;top:-6px;left:50%;transform:translate(-50%,10px) scale(.8);background:#fff;color:#4a3d63;font:700 14px var(--display);padding:7px 14px;border-radius:999px;box-shadow:0 8px 20px rgba(40,20,70,.2);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .25s,transform .4s cubic-bezier(.2,.9,.25,1.4)}
+.cheer::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fff}
+body.celebrate .cheer{opacity:1;transform:translate(-50%,0) scale(1)}
+body.celebrate .capy .breath{animation:hop .45s ease-out 3}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px) scaleY(1.03)}}
 .task .pom{font-weight:700;color:#a99cc0;font-variant-numeric:tabular-nums;white-space:nowrap}
 .task .pom b{color:#6d5f86;font-size:17px}
 .task .del{background:none;border:0;color:#b8afc9;font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
 .add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font:700 15px var(--body);color:var(--ink-soft);background:rgba(0,0,0,.08);border:2px dashed rgba(255,255,255,.45);border-radius:8px;padding:18px;cursor:pointer}
 .add:hover{color:var(--ink);background:rgba(0,0,0,.12)}
 form.newtask{background:#fff;color:#4a3d63;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px}
-form.newtask input[type=text]{font:700 18px var(--body);border:0;outline:0;color:#4a3d63;padding:6px 0}
+form.newtask{color-scheme:light}
+form.newtask input[type=text]{font:700 18px var(--body);border:0;border-bottom:2px solid #ece8f5;border-radius:0;outline:0;color:#4a3d63;background:#fff;padding:6px 0 8px;width:100%;box-sizing:border-box;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+form.newtask input[type=text]::placeholder{color:#b3a9c6;opacity:1}
+form.newtask input[type=text]:focus{border-bottom-color:#8c80a3}
+form.newtask input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px #fff inset;-webkit-text-fill-color:#4a3d63}
+.settings{color-scheme:light}
 form.newtask label{font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px}
 form.newtask input[type=number]{width:70px;font:700 15px var(--body);background:#efebf6;border:0;border-radius:6px;padding:8px;color:#4a3d63}
 .frow{display:flex;justify-content:flex-end;gap:8px}
@@ -235,6 +254,9 @@ body.on-light .vol input{accent-color:#231d30}
 body.on-light .task{box-shadow:0 0 0 1px rgba(35,29,48,.1),0 6px 14px rgba(35,29,48,.06)}
 body.on-light .settings{box-shadow:0 0 0 1px rgba(35,29,48,.1),0 10px 30px rgba(35,29,48,.12)}
 body.on-light button:focus-visible,body.on-light input:focus-visible{outline-color:#231d30}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translate(-50%,20px);z-index:70;max-width:calc(100% - 32px);
+  background:#231d30;color:#fff;font:600 14px var(--body);padding:12px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(20,10,40,.3);opacity:0;pointer-events:none;transition:opacity .25s,transform .35s cubic-bezier(.2,.9,.25,1.15);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
 footer{text-align:center;color:var(--ink-soft);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:440px){.skip{right:-44px}.skip.reset{right:auto;left:-44px}.main{width:170px}}
@@ -316,6 +338,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
   </div>
 
   <div class="capy-stage">
+    <div class="cheer" id="cheer" role="status" aria-live="polite">Tarefa concluída!</div>
     <svg class="capy" viewBox="0 0 240 165" role="img" aria-label="Capivara de chapéu bucket e moletom">
       <defs>
         <radialGradient id="fur" cx=".45" cy=".35" r=".75"><stop offset="0" stop-color="#c99566"/><stop offset="1" stop-color="#a87148"/></radialGradient>
@@ -448,6 +471,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
     <div class="summary" id="summary" style="margin-top:22px"></div>
   </section>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <footer>Feito com calma de capivara.</footer>
 </div>
 
@@ -471,7 +495,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
     $("#main").classList.toggle("running",running);
     $("#skip").hidden=!(running||left<total);
     $("#reset").hidden=!(left<total);
-    document.body.className=mode+(running?" running":"")+(window.__ring?" ringing":"")+(window.__isLight&&window.__isLight(mode)?" on-light":"");
+    document.body.className=mode+(running?" running":"")+(window.__ring?" ringing":"")+(window.__isLight&&window.__isLight(mode)?" on-light":"")+(window.__cele?" celebrate":"");
     const DO={pomo:"No foco, curtindo um lo-fi",short:"Pausa pro bubble tea",long:"Relaxando no ofurô"};
     $("#doing").textContent=running?DO[mode]:"Esperando você começar";
     document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-pressed",t.dataset.mode===mode));
@@ -527,7 +551,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
 
   $("#main").addEventListener("click",()=>{ensureAudio();stopAlarm(); running?stop():start();});
   $("#skip").addEventListener("click",()=>{skipping=true;left=0;finish();});
-  $("#reset").addEventListener("click",()=>{stop();left=total;render();});
+  $("#reset").addEventListener("click",()=>{stop();left=total=mins[mode]*60;render();});
   document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setMode(t.dataset.mode)));
   document.addEventListener("keydown",e=>{if(e.code==="Space"&&!/INPUT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();$("#main").click();}});
 
@@ -536,11 +560,11 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
   function renderTasks(){
     const ul=$("#tasks");ul.innerHTML="";
     tasks.forEach(t=>{
-      const li=document.createElement("li");li.className="task"+(t.id===activeId?" active":"")+(t.done?" done":"");
+      const li=document.createElement("li");li.dataset.id=t.id;li.className="task"+(t.id===activeId?" active":"")+(t.done?" done":"");
       li.innerHTML='<button class="chk" type="button" aria-label="Concluir"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="name"></span><span class="pom"><b>'+t.act+'</b>/'+t.est+'</span><button class="del" type="button" aria-label="Remover">×</button>';
-      li.querySelector(".name").textContent=t.name;
+      {const nt=document.createElement("span");nt.className="nt";nt.textContent=t.name;li.querySelector(".name").appendChild(nt);}
       li.addEventListener("click",()=>{activeId=t.id;saveTasks();});
-      li.querySelector(".chk").addEventListener("click",e=>{e.stopPropagation();t.done=!t.done;saveTasks();});
+      li.querySelector(".chk").addEventListener("click",e=>{e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();t.done=!t.done;saveTasks();if(t.done)celebrate(t.id,r);});
       li.querySelector(".del").addEventListener("click",e=>{e.stopPropagation();tasks=tasks.filter(x=>x.id!==t.id);if(activeId===t.id)activeId=tasks[0]?tasks[0].id:null;saveTasks();});
       ul.appendChild(li);
     });
@@ -562,10 +586,37 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
   $("#btn-settings").addEventListener("click",()=>setSettings(!$("#settings-wrap").classList.contains("open")));
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#settings-wrap").classList.contains("open"))setSettings(false);});
   $("#sback").addEventListener("click",()=>setSettings(false));
+  // ---------- comemoração ao concluir tarefa ----------
+  const CHEERS=["Tarefa concluída!","Mandou bem!","Uma a menos!","Capivara aprova!","Isso aí!"];
+  let cheerT;
+  function celebrate(id,r){
+    const li=document.querySelector('.task[data-id="'+id+'"]');if(li)li.classList.add("just-done");
+    $("#cheer").textContent=CHEERS[Math.floor(Math.random()*CHEERS.length)];
+    window.__cele=true;document.body.classList.add("celebrate");clearTimeout(cheerT);
+    cheerT=setTimeout(()=>{window.__cele=false;document.body.classList.remove("celebrate");},1900);
+    if(!matchMedia("(prefers-reduced-motion: reduce)").matches)confetti(r.left+r.width/2,r.top+r.height/2);
+    doneSound();
+  }
+  function confetti(x,y){
+    const cs=getComputedStyle(document.documentElement),cols=[cs.getPropertyValue("--bg-pomo"),cs.getPropertyValue("--bg-short"),cs.getPropertyValue("--bg-long"),"#f2c14e","#e07a9b","#7fb069"].map(c=>c.trim()||"#f2c14e");
+    for(let i=0;i<26;i++){const d=document.createElement("span");d.className="confetti";d.style.left=x+"px";d.style.top=y+"px";d.style.background=cols[i%cols.length];
+      if(i%3===0)d.style.borderRadius="50%";document.body.appendChild(d);
+      const a=Math.random()*Math.PI*2,v=50+Math.random()*90,dx=Math.cos(a)*v,dy=Math.sin(a)*v-60;
+      d.animate([{transform:"translate(-50%,-50%) rotate(0)",opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*540}deg)`,opacity:1,offset:.6},{transform:`translate(${dx*1.2}px,${dy+90}px) rotate(${Math.random()*720}deg)`,opacity:0}],{duration:900+Math.random()*500,easing:"cubic-bezier(.2,.7,.3,1)"}).onfinish=()=>d.remove();}
+  }
+  function doneSound(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();
+    const out=ctx.createGain();out.gain.value=Math.max(.15,alarm.vol/100)*.7;out.connect(ctx.destination);const t=ctx.currentTime+.03;
+    [[783.99,0],[987.77,.08],[1174.66,.16],[1567.98,.26]].forEach(([fq,d])=>mar(t+d,fq,out));}catch(e){}}
+  let toastT;
+  function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),3500);}
   $("#save-settings").addEventListener("click",()=>{
     const c=(v,d)=>Math.min(120,Math.max(1,parseInt(v)||d));
     mins={pomo:c($("#set-pomo").value,25),short:c($("#set-short").value,5),long:c($("#set-long").value,15)};
-    store.set("capi-mins",mins);setSettings(false);setMode(mode,true);renderTasks();
+    store.set("capi-mins",mins);setSettings(false);
+    // não mexe num timer em andamento: os novos tempos valem a partir da próxima etapa
+    if(!running&&left===total){left=total=mins[mode]*60;render();}
+    else if(mins[mode]*60!==total)toast("Ajustes salvos. O novo tempo vale ao reiniciar ou na próxima etapa.");
+    renderTasks();
   });
 
   // ---------- Capi Rádio: estações geradas no navegador ----------
@@ -748,7 +799,11 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
     if(playing&&!allowed(mode))setPlaying(false);
     else if(!playing&&snd.lofi&&running&&allowed(mode)){ensureAudio();setPlaying(true);}});
   // o som acompanha o timer
-  $("#main").addEventListener("click",()=>{if(running&&!playing&&snd.lofi&&allowed(mode))setPlaying(true);});
+  $("#main").addEventListener("click",()=>{
+    if(running){if(!playing&&snd.lofi&&allowed(mode))setPlaying(true);}
+    else if(playing&&!snd.breaks)setPlaying(false);   // pausou com "Tocar nas pausas" desligado: a música para junto
+  });
+  $("#reset").addEventListener("click",()=>{if(playing&&!snd.breaks)setPlaying(false);});
   const _finish=finish;finish=function(){_finish();if(playing&&!allowed(mode))setPlaying(false);};
   const ST_IDS=Object.keys(Lofi.ST);
   function tune(dir){const i=(ST_IDS.indexOf(Lofi.station)+dir+ST_IDS.length)%ST_IDS.length;snd.station=ST_IDS[i];Lofi.setStation(snd.station);

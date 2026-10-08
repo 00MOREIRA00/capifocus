@@ -27,7 +27,7 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
   Troque de estação pelas setas ao lado do nome. Pode tocar só durante o foco ou também nas pausas, e a estação escolhida fica salva.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
 - **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término.
-- **Temas de cor:** seis temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango e Noite) ou uma cor personalizada, escolhidos nos ajustes. Cada modo ganha um tom próprio a partir do tema.
+- **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor personalizada, inclusive preto e branco. Em fundos claros, textos e botões ficam escuros automaticamente, escolhidos nos ajustes. Cada modo ganha um tom próprio a partir do tema.
 - **Ajustes:** duração de cada modo, tema de cor e configurações do alarme.
 - **Tudo salvo no navegador:** tarefas, ajustes, tema e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
 

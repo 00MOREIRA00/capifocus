@@ -98,22 +98,26 @@ Com VS Code: instale a extensão **Live Server**, clique com o botão direito no
 
 ## Estrutura do projeto
 
-```
+```text
 capifocus/
-├── index.html   # o app inteiro: HTML, CSS, SVG da capivara e JavaScript
-└── README.md
+??? index.html
+??? assets/mascot/
+?   ??? capy-default.png
+?   ??? capy-focus.png
+?   ??? capy-break.png
+?   ??? capy-completed.png
+?   ??? capy-radio.png
+??? css/
+?   ??? app.css
+?   ??? mascot.css
+??? js/
+?   ??? app.js
+?   ??? components/mascot.js
+??? tests/mascot.test.cjs
+??? README.md
 ```
 
-Dentro do `index.html`, as partes principais são:
-
-| Parte | O que faz |
-| --- | --- |
-| `<style>` | Cores de cada modo, layout e as animações da capivara |
-| `<svg class="capy">` | Ilustração da capivara e os objetos de cada cena |
-| Timer | Contagem, troca de modos, ciclo de 4 pomodoros |
-| Tarefas | Lista, estimativas e previsão de término |
-| `Lofi` | Motor do lo-fi com a Web Audio API |
-| Alarme | Sons de fim de ciclo e configurações |
+`js/app.js` cont?m timer, tarefas, ajustes, r?dio e temas. `css/app.css` cont?m os estilos do aplicativo e do SVG antigo, preservado como fallback. O componente novo tem seus scripts e estilos separados. Os assets fornecidos s?o PNGs transparentes; n?o foram convertidos em SVG.
 
 ---
 
@@ -151,3 +155,57 @@ Dentro do `index.html`, as partes principais são:
 ---
 
 Feito com calma de capivara. 🦫
+
+## Mascote 2.0
+
+`js/components/mascot.js` exp?e `CapiMascot.create(host, options)` e o resolvedor puro `CapiMascot.resolve(context)`. O componente aceita `size` (`sm`, `md`, `lg`), `animated` e `className`; a inst?ncia oferece `update({mode, running, playing})` e `complete()`. O mapa de imagens ? centralizado em `CapiMascot.assets`.
+
+Quando o timer est? pausado ou reiniciado, a express?o ? `radio` se a m?sica continuar tocando, ou `default`. As imagens s?o decorativas para leitores de tela; o mascote ? um bot?o com nome acess?vel, acion?vel por clique, Enter ou Espa?o. As imagens s?o carregadas antecipadamente e exibidas ap?s decodifica??o, em uma ?rea com propor??o fixa. O SVG anterior permanece como fallback para falha de carregamento. Caminhos relativos funcionam tamb?m no deploy em `/capifocus/`.
+
+Verifica??o da implementa??o: sintaxe JavaScript, prioridades dos estados, expira??o da comemora??o, exist?ncia dos assets e integridade/transpar?ncia dos cinco PNGs. A revis?o visual no navegador em desktop e mobile ainda est? pendente; n?o havia navegador conectado na sess?o de implementa??o. N?o h? lint ou build configurados. Rode `node tests/mascot.test.cjs` para verificar o componente e `node --check js/app.js` para verificar a sintaxe do aplicativo.
+
+Anima??es: entrada suave na primeira imagem decodificada; transi??o de opacidade entre poses; respira??o lenta no repouso, foco e pausa; balan?o na r?dio; pulo com aterrissagem na conclus?o; rea??o breve ao clicar. `animated: false` desativa movimentos e transi??es. Movimento reduzido desativa tamb?m a entrada e a rea??o ao clique. N?o h? quadros intermedi?rios para piscar ou mover membros independentemente.
+
+## Testes de regressão
+
+Você precisa de Node.js 18 ou superior. Confira a versão no terminal:
+
+```powershell
+node --version
+```
+
+No terminal do VS Code, abra a pasta raiz do projeto (a que contém `index.html`) e execute:
+
+```powershell
+node tests/run.cjs
+```
+
+Não precisa executar `npm install`, iniciar o servidor do app ou abrir o navegador. O teste de caminhos inicia e encerra seu próprio servidor HTTP local.
+
+Se tudo passar, o resultado termina com:
+
+```text
+4/4 test files passed
+```
+
+Se algum teste falhar, o terminal mostra o cenário, o resultado esperado e o resultado obtido. O comando termina com código de saída diferente de zero. Corrija a falha e execute novamente antes de publicar a alteração.
+
+Para executar apenas uma parte:
+
+```powershell
+# Timer, tarefas, rádio, persistência e ajustes
+node tests/app-regression.test.cjs
+
+# Estados e animações do mascote
+node tests/mascot.test.cjs
+
+# Integração entre timer e mascote
+node tests/timer-mascot.test.cjs
+
+# Caminhos de scripts, estilos e imagens sob /capifocus/
+node tests/static-paths.test.cjs
+```
+
+Se o terminal informar que `node` não foi reconhecido, instale o Node.js e reabra o terminal do VS Code.
+
+Os testes verificam lógica, estados e persistência com DOM simulado. Layout, acessibilidade real e reprodução de áudio ainda precisam ser conferidos no navegador. Mais detalhes em [tests/README.md](tests/README.md).

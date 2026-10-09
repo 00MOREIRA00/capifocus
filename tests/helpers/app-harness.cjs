@@ -48,6 +48,8 @@ module.exports = function createApp(saved = new Map()) {
     setInterval(fn, ms) { intervals.set(++id, { fn, ms }); return id; }, clearInterval: key => intervals.delete(key),
     setTimeout(fn, ms) { timeouts.set(++id, { fn, at: now + ms }); return id; }, clearTimeout: key => timeouts.delete(key)
   };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../js/theme.js'), 'utf8'), sandbox);
+  sandbox.CapiTheme = window.CapiTheme;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../js/app.js'), 'utf8'), sandbox);
   return {
     get, tabs, saved, context: () => context, celebrations: () => celebrations,

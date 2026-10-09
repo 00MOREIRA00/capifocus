@@ -185,7 +185,7 @@ Não precisa executar `npm install`, iniciar o servidor do app ou abrir o navega
 Se tudo passar, o resultado termina com:
 
 ```text
-4/4 test files passed
+5/5 test files passed
 ```
 
 Se algum teste falhar, o terminal mostra o cenário, o resultado esperado e o resultado obtido. O comando termina com código de saída diferente de zero. Corrija a falha e execute novamente antes de publicar a alteração.

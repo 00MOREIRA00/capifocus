@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Timer pomodoro com uma capivara street e lo-fi gerado no navegador.">
 <meta name="theme-color" content="#a28bd4">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23a28bd4'/%3E%3Cpath d='M9 21 C9 13 14 10 20 10 C26 10 31 13 31 21 L31.5 26 C31.5 31 26 34 20 34 C14 34 8.5 31 8.5 26 Z' fill='%23b57e52'/%3E%3Cellipse cx='20' cy='28' rx='8' ry='5' fill='%239a643c'/%3E%3Crect x='16' y='24' width='8' height='3.6' rx='1.8' fill='%233a2416'/%3E%3Ccircle cx='15' cy='20' r='1.5' fill='%2322140b'/%3E%3Ccircle cx='25' cy='20' r='1.5' fill='%2322140b'/%3E%3Cpath d='M12 14 C12 6 28 6 28 14 Z' fill='%23f2c14e'/%3E%3Cellipse cx='20' cy='14' rx='12' ry='2.6' fill='%23e3ad35'/%3E%3C/svg%3E">
+<link rel="icon" href="assets/mascot/capy-default.png">
 <title>Capifocus</title>
+<script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/mascot.css">
+<link rel="preload" href="assets/mascot/capy-default.png" as="image">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap">
@@ -18,7 +20,7 @@
 <div class="wrap">
   <header>
     <div class="logo">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#fff"/><path d="M9 21 C9 13 14 10 20 10 C26 10 31 13 31 21 L31.5 26 C31.5 31 26 34 20 34 C14 34 8.5 31 8.5 26 Z" fill="#b57e52"/><ellipse cx="20" cy="28" rx="8" ry="5" fill="#9a643c"/><rect x="16" y="24" width="8" height="3.6" rx="1.8" fill="#3a2416"/><circle cx="15" cy="20" r="1.5" fill="#22140b"/><circle cx="25" cy="20" r="1.5" fill="#22140b"/><path d="M12 14 C12 6 28 6 28 14 Z" fill="#f2c14e"/><ellipse cx="20" cy="14" rx="12" ry="2.6" fill="#e3ad35"/></svg>
+      <img src="assets/mascot/capy-default.png" width="40" height="40" alt="" aria-hidden="true">
       Capifocus
     </div>
     <div class="hbtns">
@@ -91,118 +93,6 @@
 
   <div class="capy-stage">
     <div class="cheer" id="cheer" role="status" aria-live="polite">Tarefa concluída!</div>
-    <svg class="capy" viewBox="0 0 240 165" role="img" aria-label="Capivara de chapéu bucket e moletom">
-      <defs>
-        <radialGradient id="fur" cx=".45" cy=".35" r=".75"><stop offset="0" stop-color="#c99566"/><stop offset="1" stop-color="#a87148"/></radialGradient>
-      </defs>
-      <ellipse cx="120" cy="159" rx="72" ry="6" fill="rgba(0,0,0,.14)"/>
-      <g class="breath">
-        <!-- moletom -->
-        <ellipse cx="120" cy="104" rx="44" ry="12" fill="#3d3058"/>
-        <path d="M62 150 C58 116 78 96 120 96 C162 96 182 116 178 150 C170 158 70 158 62 150 Z" fill="#2b2140"/>
-        <path d="M96 130 H144 L139 148 H101 Z" fill="#241b38" stroke="#3d3058" stroke-width="2" stroke-linejoin="round"/>
-        <g stroke="#ece8f5" stroke-width="2.4" stroke-linecap="round"><path d="M112 104 L110 122"/><path d="M128 104 L130 122"/></g>
-        <!-- corrente -->
-        <path d="M94 101 Q120 128 146 101" stroke="#f2c14e" stroke-width="3.2" fill="none" stroke-dasharray="4 2"/>
-        <circle cx="120" cy="116" r="7" fill="#f2c14e" stroke="#c9952a" stroke-width="1.5"/>
-        <text x="120" y="119.5" text-anchor="middle" font-family="Fredoka,sans-serif" font-weight="700" font-size="9" fill="#8a5f12">C</text>
-        <!-- mãos -->
-        <ellipse cx="72" cy="132" rx="10" ry="11" fill="url(#fur)"/>
-        <ellipse cx="168" cy="132" rx="10" ry="11" fill="url(#fur)"/>
-        <path d="M63 124 q9 -5 18 0 M159 124 q9 -5 18 0" stroke="#3d3058" stroke-width="5" fill="none" stroke-linecap="round"/>
-        <!-- tênis -->
-        <g>
-          <rect x="80" y="144" width="36" height="15" rx="7.5" fill="#fff"/>
-          <rect x="124" y="144" width="36" height="15" rx="7.5" fill="#fff"/>
-          <path d="M82 155 h32 M126 155 h32" stroke="#e07a9b" stroke-width="3.5" stroke-linecap="round"/>
-          <path d="M92 147 l6 3 M98 146 l6 3 M136 146 l6 3 M142 147 l6 3" stroke="#bdb3d3" stroke-width="1.6" stroke-linecap="round"/>
-        </g>
-        <g class="head">
-          <!-- orelhas -->
-          <ellipse cx="82" cy="44" rx="7" ry="6.5" fill="#94603a"/>
-          <ellipse cx="158" cy="44" rx="7" ry="6.5" fill="#94603a"/>
-          <ellipse cx="83" cy="45" rx="3.4" ry="3" fill="#6e4428"/>
-          <ellipse cx="157" cy="45" rx="3.4" ry="3" fill="#6e4428"/>
-          <!-- cabeça -->
-          <path d="M78 58 C78 32 98 22 120 22 C142 22 162 32 162 58 L164 78 C164 96 146 106 120 106 C94 106 76 96 76 78 Z" fill="url(#fur)"/>
-          <ellipse cx="120" cy="83" rx="34" ry="22" fill="#9a643c"/>
-          <rect x="105" y="70" width="30" height="13" rx="6.5" fill="#3a2416"/>
-          <ellipse cx="113" cy="74" rx="3" ry="1.6" fill="#6e4a33"/>
-          <ellipse cx="127" cy="74" rx="3" ry="1.6" fill="#6e4a33"/>
-          <path class="mouth" d="M111 91 q4.5 4.5 9 0 q4.5 4.5 9 0" stroke="#3a2416" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-          <ellipse cx="90" cy="76" rx="7" ry="4" fill="#ef8fa3" opacity=".5"/>
-          <ellipse cx="150" cy="76" rx="7" ry="4" fill="#ef8fa3" opacity=".5"/>
-          <!-- olhos -->
-          <g class="eye-open">
-            <ellipse cx="98" cy="58" rx="4.6" ry="5.4" fill="#22140b"/>
-            <ellipse cx="142" cy="58" rx="4.6" ry="5.4" fill="#22140b"/>
-            <circle cx="99.8" cy="56" r="1.7" fill="#fff"/><circle cx="143.8" cy="56" r="1.7" fill="#fff"/>
-          </g>
-          <g class="eye-closed" stroke="#22140b" stroke-width="2.6" fill="none" stroke-linecap="round">
-            <path d="M92 58 q6 5 12 0"/><path d="M136 58 q6 5 12 0"/>
-          </g>
-          <!-- bucket hat -->
-          <path d="M87 36 C88 12 152 12 153 36 Z" fill="#f2c14e"/>
-          <path d="M88 31 H152" stroke="#2b2140" stroke-width="4.5"/>
-          <ellipse cx="120" cy="37" rx="47" ry="8.5" fill="#e3ad35"/>
-          <path d="M104 18 q8 -3 16 -3" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".5"/>
-          <!-- óculos escuros (pausa longa) -->
-          <g class="prop prop-long">
-            <rect x="85" y="49" width="27" height="16" rx="7" fill="#1d1530"/>
-            <rect x="128" y="49" width="27" height="16" rx="7" fill="#1d1530"/>
-            <path d="M112 54 h16" stroke="#1d1530" stroke-width="3"/>
-            <path d="M89 53 l7 0 M132 53 l7 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".5"/>
-          </g>
-          <!-- fone (pomodoro) -->
-          <g class="prop prop-pomo">
-            <path d="M74 62 C70 4 170 4 166 62" stroke="#e07a9b" stroke-width="6" fill="none" stroke-linecap="round"/>
-            <rect x="64" y="48" width="17" height="27" rx="8.5" fill="#e07a9b" stroke="#2b2140" stroke-width="2.5"/>
-            <rect x="159" y="48" width="17" height="27" rx="8.5" fill="#e07a9b" stroke="#2b2140" stroke-width="2.5"/>
-          </g>
-        </g>
-      </g>
-
-      <!-- Pomodoro: curtindo o som -->
-      <g class="prop prop-pomo" fill="var(--ink)" font-family="Fredoka,sans-serif" font-weight="700">
-        <text class="note" x="186" y="52" font-size="20">♪</text>
-        <text class="note" x="36" y="62" font-size="18">♫</text>
-        <text class="note" x="200" y="86" font-size="14">♪</text>
-      </g>
-
-      <!-- Pausa curta: bubble tea -->
-      <g class="prop prop-short">
-        <path d="M172 98 L130 90" stroke="#f2c14e" stroke-width="4" stroke-linecap="round"/>
-        <path d="M157 100 H181 L177 134 H161 Z" fill="rgba(255,255,255,.85)"/>
-        <path d="M158.2 110 H179.8 L177 134 H161 Z" fill="#c9a27a"/>
-        <g class="boba" fill="#3a2416"><circle cx="164" cy="129" r="2.6"/><circle cx="170" cy="130" r="2.6"/><circle cx="175" cy="128" r="2.6"/><circle cx="167" cy="124" r="2.6"/><circle cx="173" cy="123" r="2.6"/></g>
-        <rect x="155" y="96" width="28" height="6" rx="3" fill="#e07a9b"/>
-        <ellipse cx="160" cy="124" rx="9.5" ry="10.5" fill="url(#fur)"/>
-        <g fill="#ffd6e4">
-          <path class="heart" d="M196 62 c-3-4-9-1-6 4 l6 5 6-5 c3-5-3-8-6-4z"/>
-          <path class="heart" d="M210 78 c-2-3-7-1-5 3 l5 4 5-4 c2-4-3-6-5-3z"/>
-        </g>
-      </g>
-
-      <!-- Pausa longa: ofurô -->
-      <g class="prop prop-long">
-        <rect x="40" y="110" width="160" height="50" rx="9" fill="#c98b55"/>
-        <rect x="40" y="106" width="160" height="9" rx="4.5" fill="#9fd3e6"/>
-        <rect x="40" y="122" width="160" height="4" fill="#8a5b37"/>
-        <rect x="40" y="145" width="160" height="4" fill="#8a5b37"/>
-        <g stroke="#b07646" stroke-width="1.5"><path d="M72 115v45M104 115v45M136 115v45M168 115v45"/></g>
-        <g>
-          <g class="float"><circle cx="66" cy="107" r="7.5" fill="var(--yuzu)"/></g>
-          <g class="float"><circle cx="176" cy="108" r="6.5" fill="var(--yuzu)"/></g>
-        </g>
-        <g stroke="var(--ink)" stroke-width="2.4" fill="none" stroke-linecap="round">
-          <path class="steam" d="M54 96 q-5 -6 0 -12 q5 -6 0 -12"/>
-          <path class="steam" d="M188 96 q-5 -6 0 -12 q5 -6 0 -12"/>
-          <path class="steam" d="M204 100 q-5 -6 0 -12 q5 -6 0 -12"/>
-        </g>
-        <text class="zzz" x="176" y="30" font-size="18">z</text>
-        <text class="zzz" x="190" y="18" font-size="13">z</text>
-      </g>
-    </svg>
     <div class="doing" id="doing">Esperando você</div>
     <div class="count" id="count">#1</div>
     <div class="msg" id="msg">Hora de focar!</div>

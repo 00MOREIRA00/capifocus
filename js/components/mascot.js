@@ -16,10 +16,7 @@
     view.className = 'mascot mascot--' + (['sm', 'md', 'lg'].includes(size) ? size : 'md');
     if (className) view.classList.add(...className.split(/\s+/).filter(Boolean));
     view.setAttribute('aria-label', 'Animar a capivara');
-    const fallback = host.querySelector('.capy');
-    host.insertBefore(view, fallback);
-    if (fallback) view.appendChild(fallback);
-    if (fallback) fallback.setAttribute('aria-hidden', 'true');
+    host.insertBefore(view, host.querySelector('#doing'));
     let current = 'default';
     let visible = null;
     let reaction;
@@ -53,7 +50,7 @@
         }
       }
       view.dataset.animated = String(animated && ready);
-      if (fallback) fallback.style.display = visible ? 'none' : '';
+
     }
     Object.entries(assets).forEach(([state, src]) => {
       const img = new Image(1254, 1254);
@@ -62,11 +59,20 @@
       images[state] = img;
       view.appendChild(img);
       img.onload = async () => {
-        try { await img.decode(); } catch (_) { return; }
+        try { await img.decode(); } catch (_) {
+          img.dataset.failed = 'true';
+          show();
+          return;
+        }
+        img.dataset.failed = 'false';
         img.dataset.ready = 'true';
         show();
       };
-      img.onerror = () => { img.dataset.ready = 'false'; show(); };
+      img.onerror = () => {
+        img.dataset.ready = 'false';
+        img.dataset.failed = 'true';
+        show();
+      };
       img.src = src;
     });
     let completionTimer;

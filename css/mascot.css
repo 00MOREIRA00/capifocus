@@ -1,10 +1,9 @@
-.mascot{position:relative;display:block;width:230px;max-width:100%;aspect-ratio:1;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;flex-shrink:0;border-radius:24px;touch-action:manipulation}
+.mascot{position:relative;z-index:0;display:block;width:230px;max-width:100%;aspect-ratio:1;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;flex-shrink:0;border-radius:24px;touch-action:manipulation}
 .mascot--sm{width:120px}.mascot--lg{width:300px}
 .mascot:focus-visible{outline:3px solid var(--ink,currentColor);outline-offset:4px}
 .mascot img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .4s ease;pointer-events:none;transform-origin:50% 90%}
 .mascot img.is-visible{opacity:1}
 .mascot[data-animated="false"] img{transition:none}
-.mascot .capy{width:100%;height:100%;pointer-events:none}
 .mascot[data-animated="true"] img.is-visible[data-pose="default"],
 .mascot[data-animated="true"] img.is-visible[data-pose="break"]{animation:mascot-breathe 6s ease-in-out infinite}
 .mascot[data-animated="true"] img.is-visible[data-pose="focus"]{animation:mascot-breathe 8s ease-in-out infinite}

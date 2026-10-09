@@ -16,6 +16,7 @@ O comando executa todos os arquivos `*.test.cjs` desta pasta e retorna código d
 | `mascot.test.cjs` | Prioridades, carregamento de poses, comemoração transitória, reação ao clique e movimento reduzido |
 | `timer-mascot.test.cjs` | Integração entre funções reais do timer e contexto do mascote |
 | `static-paths.test.cjs` | Servidor HTTP temporário: caminhos de scripts, CSS e PNGs sob `/capifocus/` |
+| `theme.test.cjs` | Tema salvo aplicado antes do conteúdo, cores personalizadas e armazenamento ausente ou inválido |
 
 O helper `helpers/app-harness.cjs` executa o script de produção inteiro sem expor suas funções privadas. Simula o DOM, o relógio e o armazenamento; os cenários acionam eventos dos controles e verificam resultados visíveis ou persistidos. Cada cenário começa com uma instância isolada.
 

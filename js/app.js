@@ -14,6 +14,34 @@
 
   const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
   const TITLE_MODE={pomo:"Foco",short:"Pausa curta",long:"Pausa longa"};
+  // ciclo: pausa longa a cada N focos, início automático e notificação (#17, #14)
+  let flow=Object.assign({longEvery:4,autoBreak:false,autoPomo:false,notify:false},store.get("capi-flow",{}));
+  flow.longEvery=Math.min(10,Math.max(2,parseInt(flow.longEvery)||4));
+  let autoT=null,quiet=false;
+  // timer salvo no navegador para sobreviver a recarregar a página (#15)
+  function saveTimer(){store.set("capi-timer",{mode,total,left,running,endAt:running?endAt:0});}
+  // tela acesa durante o foco (#16)
+  let wakeLock=null,wakePending=false;
+  function syncWake(){try{
+    const want=running&&mode==="pomo"&&!(typeof document!=="undefined"&&document.hidden);
+    if(want&&!wakeLock&&!wakePending&&typeof navigator!=="undefined"&&navigator.wakeLock&&navigator.wakeLock.request){
+      wakePending=true;
+      navigator.wakeLock.request("screen").then(l=>{wakePending=false;wakeLock=l;
+        if(l.addEventListener)l.addEventListener("release",()=>{if(wakeLock===l)wakeLock=null;});
+        if(!(running&&mode==="pomo"))syncWake();
+      }).catch(()=>{wakePending=false;});
+    }else if(!want&&wakeLock){const l=wakeLock;wakeLock=null;try{l.release().catch(()=>{})}catch(e){}}
+  }catch(e){}}
+  // notificação do navegador ao fim de cada etapa (#14)
+  const NOTIFY_MSG={pomo:"Fim da pausa. Bora focar?",short:"Fim do foco! Hora de uma pausa curta.",long:"Fim do foco! Hora da pausa longa."};
+  function notifyEnd(next){try{
+    if(!flow.notify||typeof Notification==="undefined"||Notification.permission!=="granted")return;
+    if(typeof document!=="undefined"&&!document.hidden&&document.hasFocus&&document.hasFocus())return;   // app na frente: o alarme basta
+    const n=new Notification("Capifocus",{body:NOTIFY_MSG[next],icon:"assets/mascot/capy-default.png",tag:"capifocus-ciclo",renotify:true});
+    n.onclick=()=>{try{window.focus()}catch(e){}n.close();};
+  }catch(e){}}   // Android exige service worker para notificar: aí simplesmente não mostra
+  // confirmação ao trocar de aba com o timer rodando (#10)
+  let pendingMode=null;
   let lastTitle="";
   function updateTitle(){
     const t=(running||left<total)?(running?"":"⏸ ")+fmt(left)+" · "+TITLE_MODE[mode]+" | Capifocus":"Capifocus";
@@ -33,6 +61,7 @@
     B.toggle("running",running);
     B.toggle("on-light",!!lightModes[mode]);
     updateTitle();
+    syncWake();
     const DO={pomo:"Concentrada no foco",short:"Curtindo uma pausa",long:"Relaxando na pausa longa"};
     $("#doing").textContent=running?DO[mode]:(playing?"Curtindo a Capi Rádio":"Esperando você começar");
     document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-pressed",t.dataset.mode===mode));
@@ -42,27 +71,43 @@
     if(typeof mediaUI==="function")mediaUI();
   }
   function setMode(m,auto){
-    if(running&&!auto)return confirmSwitch(m);
-    stop();mode=m;left=total=mins[m]*60;render();
+    if(!auto){clearTimeout(autoT);
+      if(running&&m===mode)return;
+      if(running)return confirmSwitch(m);
+    }
+    stop();mode=m;left=total=mins[m]*60;saveTimer();render();
   }
-  function confirmSwitch(m){stop();mode=m;left=total=mins[m]*60;render();}
-  function start(){running=true;endAt=Date.now()+left*1000;tick=setInterval(step,250);render();}
-  function stop(){running=false;clearInterval(tick);render();}
+  function confirmSwitch(m){
+    pendingMode=m;
+    $("#cf-text").textContent="O timer de "+TITLE_MODE[mode]+" está rodando com "+fmt(left)+" restantes. Trocar para "+TITLE_MODE[m]+" descarta esse tempo.";
+    $("#confirm").hidden=false;try{$("#cf-cancel").focus()}catch(e){}
+  }
+  function closeConfirm(apply){
+    const m=pendingMode;pendingMode=null;$("#confirm").hidden=true;
+    if(apply&&m){stop();mode=m;left=total=mins[m]*60;saveTimer();render();}
+  }
+  function start(){running=true;endAt=Date.now()+left*1000;clearInterval(tick);tick=setInterval(step,250);saveTimer();render();}
+  function stop(){running=false;clearInterval(tick);saveTimer();render();}
   function step(){
     left=Math.max(0,Math.round((endAt-Date.now())/1000));
     if(left===0){finish();return}
     render();
   }
   var finish=function(){
-    const completedNaturally=!skipping;
-    stop();if(completedNaturally){chime();mascot.complete();}skipping=false;
+    const completedNaturally=!skipping,loud=completedNaturally&&!quiet;
+    stop();if(loud){chime();mascot.complete();}skipping=false;
     if(mode==="pomo"){
       if(completedNaturally){
         const a=tasks.find(t=>t.id===activeId);if(a){a.act++;saveTasks();}
-        const next=(count%4===0)?"long":"short";count++;store.set("capi-count",count);
+        const next=(count%flow.longEvery===0)?"long":"short";count++;store.set("capi-count",count);
         setMode(next,true);
       }else setMode("short",true);   // foco pulado: não conta pomodoro nem aproxima a pausa longa
     }else setMode("pomo",true);
+    if(loud){
+      notifyEnd(mode);
+      const go=mode==="pomo"?flow.autoPomo:flow.autoBreak;   // início automático só depois de uma etapa completa
+      if(go){clearTimeout(autoT);autoT=setTimeout(()=>{if(!running){start();if(typeof musicFollow==="function")musicFollow();}},1500);}
+    }
   }
   let ctx;
   let skipping=false;
@@ -92,7 +137,7 @@
 
   $("#main").addEventListener("click",()=>{ensureAudio();stopAlarm(); running?stop():start();});
   $("#skip").addEventListener("click",()=>{skipping=true;left=0;finish();});
-  $("#reset").addEventListener("click",()=>{stop();left=total=mins[mode]*60;render();});
+  $("#reset").addEventListener("click",()=>{clearTimeout(autoT);stop();left=total=mins[mode]*60;saveTimer();render();});
   document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setMode(t.dataset.mode)));
   function typingIn(el){return !!el&&(/^(INPUT|BUTTON|TEXTAREA|SELECT)$/.test(el.tagName)||el.isContentEditable===true);}
   document.addEventListener("keydown",e=>{if(e.code==="Space"&&!typingIn(document.activeElement)){e.preventDefault();$("#main").click();}});
@@ -166,9 +211,12 @@
   $("#save-settings").addEventListener("click",()=>{
     const c=(v,d)=>Math.min(120,Math.max(1,parseInt(v)||d));
     mins={pomo:c($("#set-pomo").value,25),short:c($("#set-short").value,5),long:c($("#set-long").value,15)};
-    store.set("capi-mins",mins);setSettings(false);
+    store.set("capi-mins",mins);
+    flow.longEvery=Math.min(10,Math.max(2,parseInt($("#set-every").value)||4));$("#set-every").value=flow.longEvery;everyHint();
+    flow.autoBreak=!!$("#auto-break").checked;flow.autoPomo=!!$("#auto-pomo").checked;store.set("capi-flow",flow);
+    setSettings(false);
     // não mexe num timer em andamento: os novos tempos valem a partir da próxima etapa
-    if(!running&&left===total){left=total=mins[mode]*60;render();}
+    if(!running&&left===total){left=total=mins[mode]*60;saveTimer();render();}
     else if(mins[mode]*60!==total)toast("Ajustes salvos. O novo tempo vale ao reiniciar ou na próxima etapa.");
     renderTasks();
   });
@@ -404,8 +452,9 @@
     if(playing&&!allowed(mode))setPlaying(false);
     else if(!playing&&snd.lofi&&running&&allowed(mode)){ensureAudio();setPlaying(true);}});
   // o som acompanha o timer
+  function musicFollow(){if(running&&!playing&&snd.lofi&&allowed(mode))setPlaying(true);}
   $("#main").addEventListener("click",()=>{
-    if(running){if(!playing&&snd.lofi&&allowed(mode))setPlaying(true);}
+    if(running)musicFollow();
     else if(playing&&!snd.breaks)setPlaying(false);   // pausou com "Tocar nas pausas" desligado: a música para junto
   });
   $("#reset").addEventListener("click",()=>{if(playing&&!snd.breaks)setPlaying(false);});
@@ -459,5 +508,44 @@
     b.style.scrollBehavior="auto";b.scrollLeft=0;if(a){const r=a.offsetLeft-b.offsetLeft+a.offsetWidth+36;if(r>b.clientWidth)b.scrollLeft=r-b.clientWidth;}b.style.scrollBehavior="";themeNav();}
   $("#btn-settings").addEventListener("click",()=>requestAnimationFrame(showActiveTheme));
   renderThemes();applyTheme();
+  // ciclo e notificação nos ajustes
+  function everyHint(){const n=Math.min(10,Math.max(2,parseInt($("#set-every").value)||4))-1;
+    $("#every-hint").textContent=n+(n===1?" pausa curta":" pausas curtas")+" e depois 1 pausa longa";}
+  $("#set-every").addEventListener("input",everyHint);
+  $("#set-every").value=flow.longEvery;everyHint();$("#auto-break").checked=flow.autoBreak;$("#auto-pomo").checked=flow.autoPomo;
+  $("#notify-on").checked=flow.notify&&typeof Notification!=="undefined"&&Notification.permission==="granted";
+  $("#notify-on").addEventListener("change",()=>{
+    const box=$("#notify-on"),setN=v=>{flow.notify=v;box.checked=v;store.set("capi-flow",flow);};
+    if(!box.checked)return setN(false);
+    if(typeof Notification==="undefined"){setN(false);return toast("Este navegador não suporta notificações.");}
+    if(Notification.permission==="granted")return setN(true);
+    if(Notification.permission==="denied"){setN(false);return toast("As notificações estão bloqueadas para este site nas configurações do navegador.");}
+    Promise.resolve(Notification.requestPermission()).then(p=>{if(p==="granted")setN(true);else{setN(false);toast("Sem permissão, o Capifocus avisa só com o alarme.");}}).catch(()=>setN(false));
+  });
+  // confirmação de troca de aba
+  $("#confirm").hidden=true;
+  $("#cf-ok").addEventListener("click",()=>closeConfirm(true));
+  $("#cf-cancel").addEventListener("click",()=>closeConfirm(false));
+  $("#cf-back").addEventListener("click",()=>closeConfirm(false));
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&pendingMode)closeConfirm(false);});
+  // Wake Lock é solto pelo navegador quando a aba some; ao voltar, pede de novo
+  document.addEventListener("visibilitychange",syncWake);
+  // retoma o timer salvo
+  (function restoreTimer(){
+    const sv=store.get("capi-timer",null);
+    if(!sv||!MSG[sv.mode])return;
+    const tot=+sv.total,lf=+sv.left;
+    if(!(tot>0)||!(lf>=0)||lf>tot)return;
+    mode=sv.mode;total=tot;left=lf;
+    if(!sv.running&&left===total){left=total=mins[mode]*60;return;}   // zerado: usa os tempos atuais
+    if(sv.running&&+sv.endAt>0){
+      const rem=Math.round((+sv.endAt-Date.now())/1000);
+      if(rem>0){left=Math.min(rem,total);endAt=+sv.endAt;running=true;clearInterval(tick);tick=setInterval(step,250);}
+      else{
+        const was=TITLE_MODE[mode];left=0;quiet=true;finish();quiet=false;   // terminou com o app fechado: registra sem tocar alarme
+        toast("O "+(was==="Foco"?"foco":was.toLowerCase())+" terminou enquanto o Capifocus estava fechado.");
+      }
+    }
+  })();
   renderTasks();render();
 })();

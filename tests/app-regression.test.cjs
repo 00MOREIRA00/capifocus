@@ -205,3 +205,112 @@ test('#23: textos e cores do localStorage não viram HTML', () => {
   assert.equal(custom.children[0].children[0].value, '#a28bd4', 'cor inválida volta ao padrão');
   assert.equal(app.get('#summary').innerHTML, '');
 });
+
+const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test('#15: timer salvo continua após recarregar, pausado ou rodando', () => {
+  const app = createApp();
+  app.get('#main').click(); app.advance(60000);
+  const reloaded = createApp(app.saved, { now: app.now() + 10000 });
+  assert.equal(reloaded.get('#time').textContent, '23:50', 'desconta o tempo com a página fechada');
+  assert.equal(reloaded.context().running, true);
+  assert.equal(reloaded.get('#main').textContent, 'Pausar');
+  reloaded.get('#main').click(); reloaded.advance(3000);
+  const again = createApp(reloaded.saved, { now: reloaded.now() + 600000 });
+  assert.equal(again.get('#time').textContent, '23:50', 'pausado não perde tempo');
+  assert.equal(again.context().running, false);
+  again.tabs[1].click();
+  assert.equal(createApp(again.saved).context().mode, 'short', 'modo também é salvo');
+});
+
+test('#15: etapa que terminou com o app fechado é registrada sem alarme', () => {
+  const app = createApp();
+  app.get('#nt-name').value = 'Ler'; app.get('#newtask').emit('submit');
+  app.get('#main').click(); app.advance(1000);
+  const later = createApp(app.saved, { now: app.now() + 40 * 60000 });
+  assert.equal(later.context().mode, 'short');
+  assert.equal(later.context().running, false);
+  assert.equal(later.data('capi-tasks')[0].act, 1);
+  assert.equal(later.celebrations(), 0, 'sem comemoração nem alarme');
+  assert.match(later.get('#toast').textContent, /terminou enquanto o Capifocus estava fechado/);
+});
+
+test('#10: trocar de aba com o timer rodando pede confirmação', () => {
+  const app = createApp();
+  assert.equal(app.get('#confirm').hidden, true);
+  app.get('#main').click(); app.advance(5000);
+  app.tabs[1].click();
+  assert.equal(app.get('#confirm').hidden, false, 'mostra a confirmação');
+  assert.match(app.get('#cf-text').textContent, /Foco.*24:55.*Pausa curta/);
+  assert.equal(app.context().mode, 'pomo'); assert.equal(app.context().running, true);
+  app.get('#cf-cancel').click();
+  assert.equal(app.get('#confirm').hidden, true);
+  assert.equal(app.context().mode, 'pomo', 'cancelar mantém tudo');
+  assert.equal(app.context().running, true);
+  app.tabs[0].click(); assert.equal(app.get('#confirm').hidden, true, 'mesma aba não pergunta');
+  app.tabs[2].click(); app.get('#cf-ok').click();
+  assert.equal(app.context().mode, 'long'); assert.equal(app.context().running, false);
+  app.tabs[1].click();
+  assert.equal(app.get('#confirm').hidden, true, 'parado troca direto');
+  assert.equal(app.context().mode, 'short');
+});
+
+test('#17: pausa longa configurável e início automático das etapas', () => {
+  const app = createApp();
+  app.get('#set-every').value = 2; app.get('#save-settings').click();
+  assert.equal(app.data('capi-flow').longEvery, 2);
+  assert.equal(app.get('#every-hint').textContent, '1 pausa curta e depois 1 pausa longa');
+  assert.equal(createApp().get('#every-hint').textContent, '3 pausas curtas e depois 1 pausa longa', 'padrão: a cada 4 focos');
+  app.get('#main').click(); app.advance(25 * 60000);
+  assert.equal(app.context().mode, 'short');
+  app.get('#main').click(); app.advance(5 * 60000);
+  app.get('#main').click(); app.advance(25 * 60000);
+  assert.equal(app.context().mode, 'long', 'pausa longa depois de 2 focos');
+  assert.equal(app.context().running, false, 'sem início automático');
+  app.get('#auto-break').checked = true; app.get('#auto-pomo').checked = true; app.get('#save-settings').click();
+  app.get('#main').click(); app.advance(15 * 60000);
+  assert.equal(app.context().mode, 'pomo');
+  app.advance(2000);
+  assert.equal(app.context().running, true, 'foco começa sozinho');
+  app.advance(25 * 60000); app.advance(2000);
+  assert.equal(app.context().mode, 'short'); assert.equal(app.context().running, true, 'pausa começa sozinha');
+  app.get('#skip').click(); app.advance(2000);
+  assert.equal(app.context().mode, 'pomo'); assert.equal(app.context().running, false, 'pular não inicia sozinho');
+  const restored = createApp(app.saved);
+  assert.equal(restored.get('#set-every').value, 2);
+  assert.equal(restored.get('#auto-break').checked, true);
+});
+
+test('#16: tela fica acesa só durante o foco rodando', async () => {
+  const app = createApp();
+  app.get('#main').click(); await flush();
+  assert.equal(app.locks.length, 1); assert.equal(app.locks[0].type, 'screen');
+  app.get('#main').click(); await flush();
+  assert.equal(app.locks[0].released, true, 'pausar solta a tela');
+  app.get('#main').click(); await flush();
+  assert.equal(app.locks.length, 2, 'continuar pede de novo');
+  app.advance(25 * 60000); await flush();
+  assert.equal(app.locks[1].released, true, 'fim do foco solta');
+  app.get('#main').click(); app.advance(1000); await flush();
+  assert.equal(app.locks.length, 2, 'pausa não prende a tela');
+});
+
+test('#14: notificação ao fim da etapa, com permissão pedida no clique', async () => {
+  const app = createApp(new Map(), { focused: false });
+  app.get('#notify-on').checked = true; app.get('#notify-on').emit('change'); await flush();
+  assert.equal(app.data('capi-flow').notify, true);
+  app.get('#main').click(); app.advance(25 * 60000);
+  assert.equal(app.notifications.length, 1);
+  assert.match(app.notifications[0].body, /pausa curta/);
+  app.get('#main').click(); app.get('#skip').click();
+  assert.equal(app.notifications.length, 1, 'pular não notifica');
+  const denied = createApp(new Map(), { focused: false, grantNotifications: false });
+  denied.get('#notify-on').checked = true; denied.get('#notify-on').emit('change'); await flush();
+  assert.equal(denied.get('#notify-on').checked, false, 'sem permissão a opção volta a desligar');
+  denied.get('#main').click(); denied.advance(25 * 60000);
+  assert.equal(denied.notifications.length, 0);
+  const focused = createApp(new Map(), { notificationPermission: 'granted' });
+  focused.get('#notify-on').checked = true; focused.get('#notify-on').emit('change');
+  focused.get('#main').click(); focused.advance(25 * 60000);
+  assert.equal(focused.notifications.length, 0, 'com o app na frente basta o alarme');
+});

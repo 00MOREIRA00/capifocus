@@ -4,12 +4,12 @@ const vm = require('node:vm');
 
 // Execute the entire production app without exposing its private functions.
 // DOM and audio are simulated; assertions use public events and saved data.
-module.exports = function createApp(saved = new Map()) {
+module.exports = function createApp(saved = new Map(), options = {}) {
   const elements = new Map();
   const docEvents = {};
   const intervals = new Map();
   const timeouts = new Map();
-  let now = 1000000, id = 0, celebrations = 0, context;
+  let now = options.now ?? 1000000, id = 0, celebrations = 0, context;
   function element() {
     const classes = new Set(), queries = new Map();
     let html = '';
@@ -53,15 +53,22 @@ module.exports = function createApp(saved = new Map()) {
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const document = {
     querySelector: get, querySelectorAll: q => q === '.tab' ? tabs : [], createElement: element, createElementNS: (ns, tag) => element(), title: '',
-    body: element(), documentElement: element(), activeElement: { tagName: 'BODY' },
+    body: element(), documentElement: element(), activeElement: { tagName: 'BODY' }, hidden: false, hasFocus: () => options.focused !== false,
     addEventListener(event, fn) { (docEvents[event] ||= []).push(fn); }
   };
   const window = { addEventListener() {} };
   // Controles de mídia do sistema simulados (Media Session API)
   const mediaSession = { metadata: null, playbackState: 'none', handlers: {}, setActionHandler(name, fn) { this.handlers[name] = fn; } };
   class MediaMetadata { constructor(data) { Object.assign(this, data); } }
+  // Wake Lock e notificações simulados
+  const locks = [];
+  const wakeLock = { request: async type => { const lock = { type, released: false, async release() { lock.released = true; }, addEventListener() {} }; locks.push(lock); return lock; } };
+  const notifications = [];
+  class Notification { constructor(title, opts) { notifications.push({ title, ...opts }); } close() {} }
+  Notification.permission = options.notificationPermission || 'default';
+  Notification.requestPermission = async () => (Notification.permission = options.grantNotifications === false ? 'denied' : 'granted');
   const sandbox = {
-    window, document, Date: Clock, navigator: { mediaSession }, MediaMetadata,
+    window, document, Date: Clock, navigator: { mediaSession, wakeLock }, MediaMetadata, Notification,
     localStorage: { getItem: k => saved.get(k) || null, setItem: (k, value) => saved.set(k, value) },
     CapiMascot: { create: () => ({ update: value => { context = value; }, complete: () => celebrations++ }) },
     matchMedia: () => ({ matches: true }), requestAnimationFrame: fn => fn(),
@@ -79,6 +86,7 @@ module.exports = function createApp(saved = new Map()) {
       for (const fn of docEvents.keydown || []) fn({ code, key: code === 'Space' ? ' ' : code, preventDefault() { prevented = true; } });
       document.activeElement = { tagName: 'BODY' }; return prevented;
     },
+    now: () => now, locks, notifications, Notification,
     get, tabs, saved, mediaSession, context: () => context, celebrations: () => celebrations,
     data: key => JSON.parse(saved.get(key)),
     advance(ms) {

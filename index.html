@@ -37,6 +37,12 @@
       <label for="set-short">Pausa curta<input id="set-short" type="number" min="1" max="60" value="5"></label>
       <label for="set-long">Pausa longa<input id="set-long" type="number" min="1" max="60" value="15"></label>
     </div>
+    <div class="flow">
+      <label class="every" for="set-every">Pausa longa a cada <input id="set-every" type="number" min="2" max="10" value="4"> focos</label>
+      <p class="every-hint" id="every-hint">3 pausas curtas e depois 1 pausa longa</p>
+      <label class="switch" for="auto-break"><input id="auto-break" type="checkbox"> Iniciar pausas automaticamente</label>
+      <label class="switch" for="auto-pomo"><input id="auto-pomo" type="checkbox"> Iniciar focos automaticamente</label>
+    </div>
     <h3>Tema</h3>
     <div class="tcar" id="tcar">
       <button class="tnav prev" id="th-prev" type="button" aria-label="Temas anteriores"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -50,6 +56,7 @@
       <label for="al-vol">Volume<input id="al-vol" type="range" min="0" max="100" value="80"></label>
       <button class="btn-test" id="al-test" type="button">Testar</button>
     </div>
+    <label class="switch" for="notify-on"><input id="notify-on" type="checkbox"> Avisar também com notificação do navegador</label>
     <div class="frow"><button class="btn-dark" id="save-settings" type="button">Salvar</button></div>
   </section>
   </div></div>
@@ -113,6 +120,14 @@
     <div class="summary" id="summary" style="margin-top:22px"></div>
   </section>
 
+  <div class="confirm" id="confirm" role="alertdialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="cf-text" hidden>
+    <div class="cf-back" id="cf-back"></div>
+    <div class="cf-box">
+      <h3 id="cf-title">Trocar de etapa?</h3>
+      <p id="cf-text"></p>
+      <div class="frow"><button class="btn-ghost" id="cf-cancel" type="button">Continuar no timer</button><button class="btn-dark" id="cf-ok" type="button">Trocar</button></div>
+    </div>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <footer>Feito com calma de capivara.</footer>
 </div>

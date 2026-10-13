@@ -14,7 +14,12 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
 
 ### Funcionalidades
 
-- **Três modos:** Pomodoro, Pausa curta e Pausa longa, cada um com sua cor. A pausa longa entra automaticamente a cada 4 pomodoros.
+- **Três modos:** Pomodoro, Pausa curta e Pausa longa, cada um com sua cor. A pausa longa entra automaticamente a cada 4 focos completos (configurável de 2 a 10 nos ajustes).
+- **Início automático:** opções para começar pausas e focos sozinhos ao fim de cada etapa completa.
+- **Timer salvo:** recarregar ou fechar a página não perde o timer. Ele continua contando, e se a etapa terminar com o app fechado ela é registrada ao abrir de novo.
+- **Confirmação ao trocar de etapa:** com o timer rodando, trocar de aba pede confirmação antes de descartar o tempo.
+- **Tela acesa no foco:** no celular, a tela não apaga enquanto um foco está rodando (onde o navegador suportar).
+- **Notificação opcional:** aviso do navegador ao fim de cada etapa quando o app está em segundo plano. No Android, depende de um service worker, que o app ainda não tem.
 - **Controles do timer:** começar, pausar, reiniciar e pular etapa. A barra de espaço também começa e pausa (exceto quando o foco está num campo ou seletor). Pular um foco não conta como pomodoro concluído nem aproxima a pausa longa.
 - **Tempo na aba do navegador:** o título da aba mostra o tempo restante e o modo, por exemplo "18:42 · Foco | Capifocus".
 - **Capivara animada:** cada modo tem uma cena própria, que só ganha movimento com o timer rodando.

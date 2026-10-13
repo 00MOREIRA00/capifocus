@@ -249,3 +249,20 @@ body.on-light button:focus-visible,body.on-light input:focus-visible{outline-col
 footer{text-align:center;color:var(--ink-soft);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:440px){.skip{right:-44px}.skip.reset{right:auto;left:-44px}.main{width:170px}}
+
+/* ajustes: ciclo e notificação */
+.settings .flow{display:flex;flex-direction:column;gap:10px}
+.settings .every{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;font-weight:700;color:#8c80a3}
+.settings .every input{width:58px;font:700 15px var(--body);background:#efebf6;border:0;border-radius:6px;padding:7px 8px;color:#4a3d63;text-align:center}
+.settings .switch{color:#8c80a3}
+.settings .switch input{background:#e4dff0}
+.settings .switch input:checked{background:#cfc6e2}
+/* confirmação ao trocar de etapa */
+.confirm{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;color-scheme:light}
+.cf-back{position:absolute;inset:0;background:rgba(25,15,45,.35);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:cfFade .2s ease}
+.cf-box{position:relative;width:min(380px,100%);background:#fff;color:#4a3d63;border-radius:12px;padding:20px;box-shadow:0 18px 40px rgba(25,15,45,.3);display:flex;flex-direction:column;gap:10px;animation:cfPop .35s cubic-bezier(.2,.9,.25,1.2)}
+.cf-box h3{margin:0;font:700 18px var(--display)}
+.cf-box p{margin:0 0 6px;font-size:15px;line-height:1.45;color:#6d5f86}
+@keyframes cfFade{from{opacity:0}}
+@keyframes cfPop{from{opacity:0;transform:translateY(10px) scale(.96)}}
+.settings .every-hint{margin:-4px 0 0;font-size:12px;font-weight:600;color:#a99cc0}

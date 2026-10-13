@@ -20,7 +20,8 @@ const sandbox = {
   document: { querySelector: node, querySelectorAll: () => [], body: { classList: { toggle() {} } }, title: '' },
   window: {}, localStorage: { getItem: () => null, setItem() {} },
   Date: { now: () => now },
-  setInterval(fn) { tick = fn; return 1; }, clearInterval() { tick = null; }
+  setInterval(fn) { tick = fn; return 1; }, clearInterval() { tick = null; },
+  setTimeout() { return 0; }, clearTimeout() {}
 };
 const prefix = app.slice(0, app.indexOf('  let ctx;'));
 vm.runInNewContext(prefix + `
@@ -38,7 +39,7 @@ timer.start(); assert.equal(latest().mode, 'pomo'); assert.equal(latest().runnin
 timer.radio(true); assert.equal(latest().playing, true); assert.equal(latest().running, true);
 timer.stop(); assert.equal(latest().running, false); assert.equal(latest().playing, true);
 timer.setMode('short'); timer.start(); assert.equal(latest().mode, 'short');
-timer.setMode('long'); timer.start(); assert.equal(latest().mode, 'long');
+timer.stop(); timer.setMode('long'); timer.start(); assert.equal(latest().mode, 'long');
 timer.skip(); assert.equal(celebrations, 0); assert.equal(latest().mode, 'pomo');
 timer.start(); now += 25 * 60 * 1000; tick();
 assert.equal(celebrations, 1); assert.equal(latest().mode, 'short'); assert.equal(latest().running, false);

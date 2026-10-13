@@ -12,7 +12,7 @@ O comando executa todos os arquivos `*.test.cjs` desta pasta e retorna código d
 
 | Arquivo | Verificações |
 | --- | --- |
-| `app-regression.test.cjs` | App inteiro: contagem com relógio controlado, pausa, retomada, reinício, ciclo de quatro focos, salto sem comemoração, criação/conclusão/exclusão de tarefas, crédito de Pomodoro, restauração de dados, rádio e ajustes |
+| `app-regression.test.cjs` | App inteiro: contagem com relógio controlado, pausa, retomada, reinício, ciclo de quatro focos, salto sem comemoração, criação/conclusão/exclusão de tarefas, crédito de Pomodoro, restauração de dados, rádio e ajustes, música ao pausar e reiniciar (#5), ajustes com timer pausado (#4) e controles de mídia do sistema (#3) |
 | `mascot.test.cjs` | Prioridades, carregamento de poses, comemoração transitória, reação ao clique e movimento reduzido |
 | `timer-mascot.test.cjs` | Integração entre funções reais do timer e contexto do mascote |
 | `static-paths.test.cjs` | Servidor HTTP temporário: caminhos de scripts, CSS e PNGs sob `/capifocus/` |

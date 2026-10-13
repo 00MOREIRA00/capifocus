@@ -79,3 +79,51 @@ test('settings clamp durations and preserve the current running session', () => 
   const restored = createApp(app.saved);
   assert.equal(restored.get('#time').textContent, '10:00');
 });
+
+test('#5: com "Tocar nas pausas" desligado, pausar e reiniciar param a música; ligado, ela continua', () => {
+  const app = createApp();
+  assert.equal(app.get('#mus-breaks').checked, false);
+  app.get('#main').click(); assert.equal(app.context().playing, true);
+  app.get('#main').click(); assert.equal(app.context().playing, false, 'pausar para a música');
+  app.get('#main').click(); assert.equal(app.context().playing, true, 'continuar volta a tocar');
+  app.advance(3000); app.get('#reset').click();
+  assert.equal(app.context().playing, false, 'reiniciar para a música');
+  app.get('#mus-breaks').checked = true; app.get('#mus-breaks').emit('change');
+  app.get('#main').click(); app.advance(2000);
+  app.get('#main').click(); assert.equal(app.context().playing, true, 'ligado: pausar não para');
+  app.get('#reset').click(); assert.equal(app.context().playing, true, 'ligado: reiniciar não para');
+});
+
+test('#4: salvar ajustes com o timer pausado no meio mantém o tempo; zerado aplica na hora', () => {
+  const app = createApp();
+  app.get('#main').click(); app.advance(7000); app.get('#main').click();
+  assert.equal(app.get('#time').textContent, '24:53');
+  app.get('#set-pomo').value = 40; app.get('#save-settings').click();
+  assert.equal(app.get('#time').textContent, '24:53');
+  assert.equal(app.get('#main').textContent, 'Começar');
+  app.get('#reset').click(); assert.equal(app.get('#time').textContent, '40:00');
+  app.get('#set-pomo').value = 15; app.get('#save-settings').click();
+  assert.equal(app.get('#time').textContent, '15:00');
+});
+
+test('#3: controles de mídia do sistema mostram a estação e controlam a rádio', () => {
+  const app = createApp();
+  const ms = app.mediaSession;
+  for (const action of ['play', 'pause', 'nexttrack', 'previoustrack']) assert.equal(typeof ms.handlers[action], 'function', action);
+  assert.equal(ms.metadata.title, 'Lo-fi clássico');
+  assert.equal(ms.metadata.artist, 'Capi Rádio · Capifocus');
+  assert.equal(ms.playbackState, 'paused');
+  app.get('#main').click();
+  assert.equal(ms.playbackState, 'playing');
+  assert.match(ms.metadata.album, /Pomodoro · timer rodando/);
+  ms.handlers.nexttrack();
+  assert.notEqual(ms.metadata.title, 'Lo-fi clássico');
+  assert.equal(app.data('capi-snd2').station, 'anime');
+  ms.handlers.previoustrack();
+  assert.equal(ms.metadata.title, 'Lo-fi clássico');
+  ms.handlers.pause();
+  assert.equal(app.context().playing, false); assert.equal(ms.playbackState, 'paused');
+  assert.equal(app.data('capi-snd2').lofi, false);
+  ms.handlers.play();
+  assert.equal(app.context().playing, true); assert.equal(ms.playbackState, 'playing');
+});

@@ -40,8 +40,11 @@ module.exports = function createApp(saved = new Map()) {
     body: element(), documentElement: element(), activeElement: { tagName: 'BODY' }, addEventListener() {}
   };
   const window = { addEventListener() {} };
+  // Controles de mídia do sistema simulados (Media Session API)
+  const mediaSession = { metadata: null, playbackState: 'none', handlers: {}, setActionHandler(name, fn) { this.handlers[name] = fn; } };
+  class MediaMetadata { constructor(data) { Object.assign(this, data); } }
   const sandbox = {
-    window, document, Date: Clock,
+    window, document, Date: Clock, navigator: { mediaSession }, MediaMetadata,
     localStorage: { getItem: k => saved.get(k) || null, setItem: (k, value) => saved.set(k, value) },
     CapiMascot: { create: () => ({ update: value => { context = value; }, complete: () => celebrations++ }) },
     matchMedia: () => ({ matches: true }), requestAnimationFrame: fn => fn(),
@@ -52,7 +55,7 @@ module.exports = function createApp(saved = new Map()) {
   sandbox.CapiTheme = window.CapiTheme;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../js/app.js'), 'utf8'), sandbox);
   return {
-    get, tabs, saved, context: () => context, celebrations: () => celebrations,
+    get, tabs, saved, mediaSession, context: () => context, celebrations: () => celebrations,
     data: key => JSON.parse(saved.get(key)),
     advance(ms) {
       now += ms;

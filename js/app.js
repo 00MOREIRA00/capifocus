@@ -27,6 +27,7 @@
     $("#count").textContent="#"+count;
     const a=tasks.find(t=>t.id===activeId);
     $("#msg").textContent=(mode==="pomo"&&a&&!a.done)?a.name:MSG[mode];
+    if(typeof mediaUI==="function")mediaUI();
   }
   function setMode(m,auto){
     if(running&&!auto)return confirmSwitch(m);
@@ -148,7 +149,7 @@
 
   // ---------- Capi Rádio: estações geradas no navegador ----------
   const Lofi=(()=>{
-    let c,master,music,dry,wet,wow,lp,lfoG,pumpG,timer=null,stopT=null,next=0,step=0,bar=0,prog=0,noise,on=false,cur="classico";
+    let mediaEl=null,c,master,music,dry,wet,wow,lp,lfoG,pumpG,timer=null,stopT=null,next=0,step=0,bar=0,prog=0,noise,on=false,cur="classico";
     const f=m=>440*Math.pow(2,(m-69)/12);
     const pick=a=>a[Math.floor(Math.random()*a.length)];
     // ----- instrumentos -----
@@ -269,7 +270,15 @@
     Object.values(ST).forEach(s=>{s.spb=60/s.bpm;s.s16=s.spb/4;});
     function init(ctx){
       if(c)return;c=ctx;
-      master=c.createGain();master.gain.value=vol();master.connect(c.destination);
+      master=c.createGain();master.gain.value=vol();
+      // No Android, só mídia tocada por um elemento <audio> ganha controles na notificação e na tela de bloqueio
+      // e continua tocando com o navegador minimizado. Sem suporte, volta para a saída direta.
+      try{
+        if(c.createMediaStreamDestination&&typeof Audio!=="undefined"){
+          const dst=c.createMediaStreamDestination();master.connect(dst);
+          mediaEl=new Audio();mediaEl.srcObject=dst.stream;mediaEl.setAttribute("playsinline","");
+        }else master.connect(c.destination);
+      }catch(e){mediaEl=null;try{master.disconnect()}catch(_){}master.connect(c.destination);}
       const comp=c.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(master);
       lp=c.createBiquadFilter();lp.type="lowpass";lp.Q.value=.5;lp.connect(comp);
       const lfo=c.createOscillator();lfoG=c.createGain();lfo.frequency.value=.07;lfo.connect(lfoG).connect(lp.frequency);lfo.start();
@@ -300,8 +309,9 @@
       music(want){
         if(!c||want===on)return;on=want;const now=c.currentTime;
         music.gain.cancelScheduledValues(now);music.gain.setValueAtTime(music.gain.value,now);
-        if(want){clearTimeout(stopT);if(!timer){next=now+.06;step=0;bar=0;timer=setInterval(sched,25);}music.gain.linearRampToValueAtTime(1,now+1.5);}
-        else{music.gain.linearRampToValueAtTime(0,now+1);stopT=setTimeout(()=>{clearInterval(timer);timer=null;},1100);}
+        if(want){clearTimeout(stopT);if(!timer){next=now+.06;step=0;bar=0;timer=setInterval(sched,25);}music.gain.linearRampToValueAtTime(1,now+1.5);
+          if(mediaEl){const pr=mediaEl.play();if(pr&&pr.catch)pr.catch(()=>{mediaEl=null;try{master.disconnect()}catch(_){}master.connect(c.destination);});}}
+        else{music.gain.linearRampToValueAtTime(0,now+1);stopT=setTimeout(()=>{clearInterval(timer);timer=null;if(mediaEl)mediaEl.pause();},1100);}
       }
     };
   })();
@@ -316,9 +326,33 @@
     $("#mus-play").setAttribute("aria-label",playing?"Pausar lo-fi":"Tocar lo-fi");
     const S=Lofi.ST[Lofi.station];
     $("#st-name").textContent=S.nome;
+    mediaUI();
     $("#mus-status").textContent=playing?("Tocando agora · "+S.bpm+" BPM"):(snd.lofi?("Toca junto com o timer · "+S.bpm+" BPM"):"Desligado · aperte play para ouvir");
   }
   function saveSnd(){store.set("capi-snd2",snd);playerUI();}
+  // ---------- controles de mídia do sistema (notificação, tela de bloqueio, fones) ----------
+  const MS=(typeof navigator!=="undefined"&&navigator.mediaSession)?navigator.mediaSession:null;
+  const MODE_LABEL={pomo:"Pomodoro",short:"Pausa curta",long:"Pausa longa"};
+  let mediaKey="";
+  function mediaUI(){try{mediaSync()}catch(e){}}   // render() pode rodar antes da rádio existir
+  function mediaSync(){
+    if(!MS)return;
+    const S=Lofi.ST[Lofi.station],album=MODE_LABEL[mode]+" · "+(running?"timer rodando":"timer parado"),key=S.nome+"|"+album+"|"+playing;
+    if(key===mediaKey)return;mediaKey=key;
+    try{
+      if(typeof MediaMetadata!=="undefined")MS.metadata=new MediaMetadata({title:S.nome,artist:"Capi Rádio · Capifocus",album,
+        artwork:[{src:"assets/mascot/capy-radio.png",sizes:"1254x1254",type:"image/png"}]});
+      MS.playbackState=playing?"playing":"paused";
+    }catch(e){}
+  }
+  function mediaAction(name,fn){try{MS.setActionHandler(name,fn)}catch(e){}}
+  if(MS){
+    mediaAction("play",()=>{ensureAudio();setPlaying(true);snd.lofi=true;saveSnd();});
+    mediaAction("pause",()=>{setPlaying(false);snd.lofi=false;saveSnd();});
+    mediaAction("stop",()=>{setPlaying(false);snd.lofi=false;saveSnd();});
+    mediaAction("nexttrack",()=>tune(1));
+    mediaAction("previoustrack",()=>tune(-1));
+  }
   $("#mus-play").addEventListener("click",()=>{ensureAudio();setPlaying(!playing);snd.lofi=playing;saveSnd();});
   $("#snd-vol").addEventListener("input",()=>{snd.vol=+$("#snd-vol").value;Lofi.setVol();saveSnd();});
   $("#mus-breaks").addEventListener("change",()=>{snd.breaks=$("#mus-breaks").checked;saveSnd();

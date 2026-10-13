@@ -25,6 +25,9 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
   - **8-bit:** chiptune com arpejos rápidos, no estilo de videogame antigo.
 
   Troque de estação pelas setas ao lado do nome. Pode tocar só durante o foco ou também nas pausas, e a estação escolhida fica salva.
+
+  Com "Tocar nas pausas" desligado, a música acompanha o timer: para ao pausar ou reiniciar e volta ao continuar. Ligado, ela segue tocando mesmo com o timer pausado.
+- **Controles de mídia do sistema:** a Capi Rádio aparece na notificação e na tela de bloqueio do celular (Android), na central de mídia do Windows e do macOS e nos botões dos fones, com o nome da estação, o modo atual e botões de tocar, pausar e trocar de estação. No Android, a música continua tocando com o navegador minimizado.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
 - **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término. Ao concluir uma tarefa, a capivara comemora com confete, um balão de parabéns e um somzinho.
 - **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor personalizada, inclusive preto e branco. Em fundos claros, textos e botões ficam escuros automaticamente, escolhidos nos ajustes. Cada modo ganha um tom próprio a partir do tema.

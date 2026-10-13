@@ -44,3 +44,12 @@ export function restoreState(saved,mins,now){
   }
   return{mode,total,left,running:false,endAt:0,expired:false};
 }
+
+// Regras entre as durações (#28): a pausa curta não passa do Pomodoro e é menor que a pausa longa.
+// Devolve a lista de problemas (vazia quando está tudo certo), com o campo a destacar.
+export function validateDurations({pomo,short,long}){
+  const errors=[];
+  if(short>pomo)errors.push({field:"short",message:"A pausa curta não pode ser maior que o Pomodoro."});
+  if(long<=short)errors.push({field:"long",message:"A pausa longa precisa ser maior que a pausa curta."});
+  return errors;
+}

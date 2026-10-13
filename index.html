@@ -39,6 +39,7 @@
       <label for="set-short">Pausa curta<input id="set-short" type="number" min="1" max="60" value="5"></label>
       <label for="set-long">Pausa longa<input id="set-long" type="number" min="1" max="60" value="15"></label>
     </div>
+    <p class="set-error" id="set-error" role="alert" hidden></p>
     <div class="flow">
       <label class="every" for="set-every">Pausa longa a cada <input id="set-every" type="number" min="2" max="10" value="4"> focos</label>
       <p class="every-hint" id="every-hint">3 pausas curtas e depois 1 pausa longa</p>
@@ -51,6 +52,7 @@
       <div class="themes" id="themes" role="group" aria-label="Cor de fundo"></div>
       <button class="tnav next" id="th-next" type="button" aria-label="Próximos temas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
+    <label class="switch" for="theme-same"><input id="theme-same" type="checkbox"> Mesma cor no Pomodoro e nas pausas</label>
     <h3>Alarme</h3>
     <div class="arow">
       <label for="al-sound">Som<select id="al-sound"><option value="sino">Sininho</option><option value="marimba">Marimba</option><option value="capi">Capi jingle</option><option value="despertador">Despertador</option></select></label>

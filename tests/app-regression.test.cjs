@@ -348,3 +348,32 @@ test('reordenar tarefas: ordem nova fica salva; Alt+setas movem pelo teclado', (
   assert.equal(app.data('capi-active'), app.data('capi-tasks')[2].id, 'tarefa ativa continua a mesma');
   assert.deepEqual(createApp(app.saved).data('capi-tasks').map(t => t.name), ['B', 'C', 'A']);
 });
+
+test('#28: tempos fora do acordo não são salvos e o aviso aparece', () => {
+  const app = createApp();
+  app.get('#set-pomo').value = 10; app.get('#set-short').value = 20; app.get('#set-long').value = 21;
+  app.get('#save-settings').click();
+  assert.equal(app.saved.has('capi-mins'), false, 'nada foi salvo');
+  assert.equal(app.get('#set-error').hidden, false);
+  assert.match(app.get('#set-error').textContent, /pausa curta não pode ser maior/);
+  assert.equal(app.get('#set-short').attributes['aria-invalid'], 'true');
+  assert.equal(app.get('#time').textContent, '25:00');
+  app.get('#set-pomo').value = 25; app.get('#set-short').value = 5; app.get('#set-long').value = 5;
+  app.get('#save-settings').click();
+  assert.match(app.get('#set-error').textContent, /pausa longa precisa ser maior/);
+  assert.equal(app.get('#set-long').attributes['aria-invalid'], 'true');
+  app.get('#set-long').value = 15; app.get('#save-settings').click();
+  assert.equal(app.get('#set-error').hidden, true);
+  assert.deepEqual(app.data('capi-mins'), { pomo: 25, short: 5, long: 15 });
+});
+
+test('#29: opção "mesma cor" é salva e restaurada', () => {
+  const app = createApp();
+  assert.equal(app.get('#theme-same').checked, false);
+  app.get('#theme-same').checked = true; app.get('#theme-same').emit('change');
+  assert.equal(app.data('capi-theme').same, true);
+  const restored = createApp(app.saved);
+  assert.equal(restored.get('#theme-same').checked, true);
+  const keep = createApp(new Map([['capi-theme', JSON.stringify({ id: 'preto', same: 'sim' })]]));
+  assert.equal(keep.get('#theme-same').checked, false, 'valor inválido vira desligado');
+});

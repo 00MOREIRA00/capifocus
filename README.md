@@ -4,6 +4,8 @@
 
 A ideia é simples: deixar a técnica pomodoro mais leve e divertida, sem cadastro, sem anúncio e sem depender de nenhum serviço externo. É só abrir e focar.
 
+**Use agora:** [rneto.dev.br/capifocus](https://rneto.dev.br/capifocus/)
+
 ---
 
 ## Sobre o projeto
@@ -38,8 +40,8 @@ O projeto é feito em HTML, CSS e JavaScript puros, organizado em módulos ES. N
 - **Controles de mídia do sistema:** a Capi Rádio aparece na notificação e na tela de bloqueio do celular (Android), na central de mídia do Windows e do macOS e nos botões dos fones, com o nome da estação, o modo atual e botões de tocar, pausar e trocar de estação. No Android, a música continua tocando com o navegador minimizado.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
 - **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término. Mude a ordem arrastando o cartão (no celular, segure um instante antes de arrastar) ou, pelo teclado, com Alt+↑ e Alt+↓. Ao concluir uma tarefa, a capivara comemora com confete, um balão de parabéns e um somzinho.
-- **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor personalizada, inclusive preto e branco. Em fundos claros, textos e botões ficam escuros automaticamente, escolhidos nos ajustes. Cada modo ganha um tom próprio a partir do tema.
-- **Ajustes:** duração de cada modo, tema de cor e configurações do alarme.
+- **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor em "Sua cor". Nos temas coloridos, cada modo ganha um tom próprio; Preto e Branco usam a mesma cor em todos os modos. A opção "Mesma cor no Pomodoro e nas pausas" deixa qualquer tema com uma cor só. Em fundos claros, textos e botões ficam escuros automaticamente.
+- **Ajustes:** duração de cada modo, pausa longa a cada N focos, início automático, tema de cor, alarme e notificação. Os tempos precisam fazer sentido entre si: a pausa curta não pode passar do Pomodoro e a pausa longa precisa ser maior que a curta. Se não fizerem, os ajustes não são salvos e o painel mostra o que corrigir.
 - **Tudo salvo no navegador:** tarefas, ajustes, tema, estatísticas e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
 
 ### Como o lo-fi funciona
@@ -126,33 +128,25 @@ capifocus/
 │   ├── icons/              ícones do app instalável
 │   └── fonts/              Fredoka e Nunito (woff2) com as licenças OFL
 ├── tests/                  testes de regressão (Node.js, sem dependências)
-└── specs/                  especificações e notas de release
+├── specs/                  especificações e notas de release
+└── LICENSE                 licença MIT
 ```
 
 `js/app.js` é carregado como módulo (`<script type="module">`) e importa os demais. `js/theme.js` e `js/components/mascot.js` continuam como scripts comuns, carregados antes, para o tema e a capivara aparecerem antes do restante.
 
 ---
 
-## Publicar no GitHub Pages
+## Publicação
 
-1. Envie o código para o GitHub:
-
-   ```bash
-   git add .
-   git commit -m "Primeira versão do Capifocus"
-   git push
-   ```
-
-2. No repositório, vá em **Settings → Pages**.
-3. Em **Build and deployment**, escolha **Deploy from a branch**, a branch `main` e a pasta `/ (root)`.
-4. Salve. Em alguns minutos o site fica disponível em `https://00moreira00.github.io/capifocus/`.
+O app está publicado em [rneto.dev.br/capifocus](https://rneto.dev.br/capifocus/). Todos os caminhos são relativos, então ele também funciona servido de qualquer subpasta (como `/capifocus/`) ou de um GitHub Pages próprio, sem nenhuma etapa de build: basta servir os arquivos da raiz do repositório.
 
 ---
 
 ## Personalizando
 
-- **Tempos padrão:** procure `{pomo:25,short:5,long:15}` em `js/app.js`. As regras do ciclo ficam em `js/timer.js`.
-- **Cores:** pelo app, em Ajustes → Tema. No código, edite ou adicione temas na lista `THEMES` (cada um define a cor de fundo e a cor de destaque de cada modo).
+- **Tempos padrão:** procure `{pomo:25,short:5,long:15}` em `js/app.js`. As regras do ciclo e a validação dos tempos (`validateDurations`) ficam em `js/timer.js`.
+- **Cores:** pelo app, em Ajustes → Tema (inclusive "Sua cor" e "Mesma cor no Pomodoro e nas pausas"). No código, edite ou adicione temas na lista `THEMES`, em `js/theme.js`: cada tema define `[fundo, destaque]` para `pomo`, `short` e `long`.
+- **Mascote:** as cinco poses ficam em `assets/mascot/` e o mapa de imagens em `CapiMascot.assets`, em `js/components/mascot.js`.
 - **Estações:** cada estação fica no objeto `ST`, em `js/lofi.js`, com andamento (`bpm`), swing, efeitos, progressões de acordes (`progs`, em notas MIDI) e a função `play`, que define o que toca em cada passo do compasso. Para criar uma estação nova, copie uma existente e ajuste.
 
 ---
@@ -160,20 +154,16 @@ capifocus/
 ## Tecnologias
 
 - HTML, CSS e JavaScript puros, com módulos ES
-- SVG para a ilustração e as animações
+- Ilustrações da capivara em PNG, com animações em CSS
 - Web Audio API para o lo-fi e o alarme
 - Service worker e Web App Manifest para uso offline e instalação
 - Fontes [Fredoka](https://fonts.google.com/specimen/Fredoka) e [Nunito](https://fonts.google.com/specimen/Nunito), hospedadas no projeto (SIL Open Font License)
-
----
-
-Feito com calma de capivara. 🦫
 
 ## Mascote 2.0
 
 `js/components/mascot.js` expõe `CapiMascot.create(host, options)` e o resolvedor puro `CapiMascot.resolve(context)`. O componente aceita `size` (`sm`, `md`, `lg`), `animated` e `className`; a instância oferece `update({mode, running, playing})` e `complete()`. O mapa de imagens é centralizado em `CapiMascot.assets`.
 
-Quando o timer está pausado ou reiniciado, a expressão é `radio` se a música continuar tocando, ou `default`. As imagens são decorativas para leitores de tela; o mascote é um botão com nome acessível, acionável por clique, Enter ou Espaço. As imagens são carregadas antecipadamente e exibidas após decodificação, em uma área com proporção fixa. O SVG anterior permanece como fallback para falha de carregamento. Caminhos relativos funcionam também no deploy em `/capifocus/`.
+Quando o timer está pausado ou reiniciado, a expressão é `radio` se a música continuar tocando, ou `default`. As imagens são decorativas para leitores de tela; o mascote é um botão com nome acessível, acionável por clique, Enter ou Espaço. As imagens são carregadas antecipadamente e exibidas após decodificação, em uma área com proporção fixa. Se uma imagem falhar ao carregar, a pose anterior continua visível. Caminhos relativos funcionam também no deploy em `/capifocus/`.
 
 Animações: entrada suave na primeira imagem decodificada; transição de opacidade entre poses; respiração lenta no repouso, foco e pausa; balanço na rádio; pulo com aterrissagem na conclusão; reação breve ao clicar. `animated: false` desativa movimentos e transições. Movimento reduzido desativa também a entrada e a reação ao clique.
 
@@ -219,6 +209,9 @@ node tests/timer-logic.test.cjs
 # Estatísticas por dia (js/stats.js)
 node tests/stats.test.cjs
 
+# Tema salvo aplicado antes da página aparecer (js/theme.js)
+node tests/theme.test.cjs
+
 # Caminhos, módulos, fontes, manifest e cache offline sob /capifocus/
 node tests/static-paths.test.cjs
 ```
@@ -226,3 +219,11 @@ node tests/static-paths.test.cjs
 Se o terminal informar que `node` não foi reconhecido, instale o Node.js e reabra o terminal do VS Code.
 
 Os testes verificam lógica, estados e persistência com DOM simulado. Layout, acessibilidade real e reprodução de áudio ainda precisam ser conferidos no navegador. Mais detalhes em [tests/README.md](tests/README.md).
+
+---
+
+## Licença
+
+O código do Capifocus está sob a [licença MIT](LICENSE). As fontes Fredoka e Nunito seguem a SIL Open Font License, com os textos em `assets/fonts/`.
+
+Feito com calma de capivara. 🦫

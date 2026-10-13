@@ -6,8 +6,9 @@
     sunset:{nome:"Pôr do sol",pomo:["#de8668","#a3442a"],short:["#dc9a52","#9a5a1c"],long:["#d77894","#983a57"]},
     morango:{nome:"Morango",pomo:["#de7389","#a1364e"],short:["#d488b0","#944573"],long:["#c287d3","#7a4291"]},
     noite:{nome:"Noite",pomo:["#3d3656","#3d3656"],short:["#2f3c58","#2f3c58"],long:["#4a3a5e","#4a3a5e"]},
-    preto:{nome:"Preto",pomo:["#111111","#111111"],short:["#1c1c1f","#1c1c1f"],long:["#18161c","#18161c"]},
-    branco:{nome:"Branco",pomo:["#ffffff","#6f55ad"],short:["#f6f6f9","#5662b0"],long:["#faf7fc","#8150a6"]}
+    // Preto e Branco: a mesma cor em Pomodoro e nas pausas (#29)
+    preto:{nome:"Preto",pomo:["#111111","#111111"],short:["#111111","#111111"],long:["#111111","#111111"]},
+    branco:{nome:"Branco",pomo:["#ffffff","#6f55ad"],short:["#ffffff","#6f55ad"],long:["#ffffff","#6f55ad"]}
   };
   function hexToHsl(h){const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255;
     const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let H=0,S=0;
@@ -28,11 +29,19 @@
     const P=hex,S=bg(-22,1),L=bg(24,2);
     return{nome:"Personalizada",pomo:[P,acc(P)],short:[S,acc(S)],long:[L,acc(L)]};
   }
-  window.CapiTheme={THEMES,customTheme,lum};
+  // Mesma cor nos três modos: Pomodoro, pausa curta e pausa longa usam a cor do Pomodoro.
+  function uniform(t){return{nome:t.nome,pomo:t.pomo,short:t.pomo,long:t.pomo};}
+  // Tema salvo -> cores de cada modo. Aceita {id, custom, same}; qualquer valor inválido cai na Lavanda.
+  function resolve(saved){
+    const valid=saved&&typeof saved==="object";
+    const t=valid&&saved.id==="custom"&&/^#[0-9a-f]{6}$/i.test(saved.custom)?customTheme(saved.custom)
+      :(valid&&Object.prototype.hasOwnProperty.call(THEMES,saved.id)?THEMES[saved.id]:THEMES.lavanda);
+    return valid&&saved.same===true?uniform(t):t;
+  }
+  window.CapiTheme={THEMES,customTheme,lum,uniform,resolve};
   let saved;
   try { saved=JSON.parse(localStorage.getItem('capi-theme') || 'null'); } catch (_) {}
-  const color = saved && saved.id === 'custom' && /^#[0-9a-f]{6}$/i.test(saved.custom)
-    ? customTheme(saved.custom) : (THEMES[saved && saved.id] || THEMES.lavanda);
+  const color=resolve(saved);
   const root=document.documentElement.style;
   ['pomo','short','long'].forEach(mode=>{
     root.setProperty('--bg-'+mode,color[mode][0]);

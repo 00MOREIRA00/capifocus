@@ -59,3 +59,13 @@ test('moveItem reordena sem alterar a lista original', () => {
   assert.deepEqual([...moveItem(list, 9, 0)], list, 'origem inválida não muda nada');
   assert.deepEqual(list, ['A', 'B', 'C', 'D']);
 });
+
+test('#28: pausa curta não passa do Pomodoro e é menor que a longa', () => {
+  const fields = m => T.validateDurations(m).map(e => e.field).join(',');
+  assert.equal(fields({ pomo: 25, short: 5, long: 15 }), '');
+  assert.equal(fields({ pomo: 25, short: 25, long: 30 }), '', 'curta igual ao foco é permitida');
+  assert.equal(fields({ pomo: 10, short: 20, long: 30 }), 'short');
+  assert.equal(fields({ pomo: 25, short: 15, long: 15 }), 'long', 'longa igual à curta não serve');
+  assert.equal(fields({ pomo: 10, short: 20, long: 5 }), 'short,long');
+  assert.match(T.validateDurations({ pomo: 10, short: 20, long: 30 })[0].message, /pausa curta/);
+});

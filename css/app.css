@@ -292,3 +292,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:13px}
 .task:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .tasks.sorting,.tasks.sorting .task{cursor:grabbing}
 .task.dragging{position:relative;z-index:5;box-shadow:0 16px 32px rgba(40,20,70,.3);transition:box-shadow .15s}
+
+/* tempos fora do acordo (#28) */
+.settings .set-error{margin:-4px 0 0;padding:8px 10px;border-radius:6px;background:#fdecef;color:#a1364e;font-size:13px;font-weight:700}
+.settings input[aria-invalid="true"]{box-shadow:0 0 0 2px #d9536e inset;background:#fdf2f4}

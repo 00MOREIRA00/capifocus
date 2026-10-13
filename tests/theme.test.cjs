@@ -21,6 +21,19 @@ for (const [value, expected] of [[JSON.stringify({id:'preto'}),'#111111'],
   assert.equal(meta.content, expected);
 }
 assert.equal(boot(null, true).properties['--bg'], '#a28bd4');
+// #29: Preto e Branco usam a mesma cor em todos os modos; "mesma cor" vale para qualquer tema
+for (const id of ['preto', 'branco']) {
+  const { properties } = boot(JSON.stringify({ id }));
+  assert.equal(properties['--bg-short'], properties['--bg-pomo']);
+  assert.equal(properties['--bg-long'], properties['--bg-pomo']);
+  assert.equal(properties['--acc-long'], properties['--acc-pomo']);
+}
+const same = boot(JSON.stringify({ id: 'lavanda', same: true })).properties;
+assert.equal(same['--bg-short'], same['--bg-pomo']); assert.equal(same['--bg-long'], same['--bg-pomo']);
+const mixed = boot(JSON.stringify({ id: 'lavanda' })).properties;
+assert.notEqual(mixed['--bg-short'], mixed['--bg-pomo'], 'sem a opção, cada modo tem sua cor');
+const sameCustom = boot(JSON.stringify({ id: 'custom', custom: '#2a7a5b', same: true })).properties;
+assert.equal(sameCustom['--bg-long'], '#2a7a5b');
 const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
 assert(html.indexOf('<script src="js/theme.js"></script>') < html.indexOf('<body>'));
 assert(html.indexOf('<script src="js/theme.js"></script>') < html.indexOf('href="css/app.css"'));

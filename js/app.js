@@ -2,7 +2,7 @@
 // CapiMascot (js/components/mascot.js) e CapiTheme (js/theme.js) são scripts clássicos carregados antes,
 // para o mascote e o tema aparecerem antes deste módulo.
 import {$,store,el,toast} from "./dom.js";
-import {TITLE_MODE,fmt,clampLongEvery,clampMinutes,nextStage,remaining,titleFor,restoreState} from "./timer.js";
+import {TITLE_MODE,fmt,clampLongEvery,clampMinutes,nextStage,remaining,titleFor,restoreState,validateDurations} from "./timer.js";
 import {sanitizeStats,addPomodoro,lastDays,streak} from "./stats.js";
 import {renderTaskList,moveItem} from "./tasks.js";
 import {createLofi} from "./lofi.js";
@@ -198,8 +198,14 @@ function doneSound(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioCo
   const out=ctx.createGain();out.gain.value=Math.max(.15,alarm.vol/100)*.7;out.connect(ctx.destination);const t=ctx.currentTime+.03;
   [[783.99,0],[987.77,.08],[1174.66,.16],[1567.98,.26]].forEach(([fq,d])=>mar(t+d,fq,out));}catch(e){}}
 $("#save-settings").addEventListener("click",()=>{
-  mins={pomo:clampMinutes($("#set-pomo").value,25),short:clampMinutes($("#set-short").value,5),long:clampMinutes($("#set-long").value,15)};
-  store.set("capi-mins",mins);
+  const next={pomo:clampMinutes($("#set-pomo").value,25),short:clampMinutes($("#set-short").value,5),long:clampMinutes($("#set-long").value,15)};
+  // tempos fora do acordo (#28): não salva nada e mostra o que ajustar
+  const problems=validateDurations(next);
+  ["pomo","short","long"].forEach(k=>$("#set-"+k).setAttribute("aria-invalid",String(problems.some(p=>p.field===k))));
+  $("#set-error").textContent=problems.map(p=>p.message).join(" ");
+  $("#set-error").hidden=!problems.length;
+  if(problems.length){try{$("#set-"+problems[0].field).focus()}catch(e){}return;}
+  mins=next;store.set("capi-mins",mins);
   flow.longEvery=clampLongEvery($("#set-every").value);$("#set-every").value=flow.longEvery;everyHint();
   flow.autoBreak=!!$("#auto-break").checked;flow.autoPomo=!!$("#auto-pomo").checked;store.set("capi-flow",flow);
   setSettings(false);
@@ -272,13 +278,13 @@ function readAlarm(){alarm={sound:$("#al-sound").value,rep:Math.min(10,Math.max(
 ["#al-sound","#al-rep","#al-vol"].forEach(id=>$(id).addEventListener("change",readAlarm));
 $("#al-test").addEventListener("click",()=>{readAlarm();const r=alarm.rep;alarm.rep=1;chime();alarm.rep=r;});
 // ---------- temas de cor ----------
-const {THEMES,customTheme,lum}=CapiTheme;
+const {THEMES,lum,resolve:resolveTheme,uniform}=CapiTheme;
 function validHex(v,fallback="#a28bd4"){return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)?v.toLowerCase():fallback;}
 let theme=store.get("capi-theme",{id:"lavanda",custom:"#a28bd4"});
 if(!theme||typeof theme!=="object")theme={id:"lavanda",custom:"#a28bd4"};
-theme={id:(theme.id==="custom"||Object.prototype.hasOwnProperty.call(THEMES,theme.id))?theme.id:"lavanda",custom:validHex(theme.custom)};
+theme={id:(theme.id==="custom"||Object.prototype.hasOwnProperty.call(THEMES,theme.id))?theme.id:"lavanda",custom:validHex(theme.custom),same:theme.same===true};
 function applyTheme(){
-  const t=theme.id==="custom"?customTheme(theme.custom):(THEMES[theme.id]||THEMES.lavanda);
+  const t=resolveTheme(theme);
   const r=document.documentElement.style;
   ["pomo","short","long"].forEach(m=>{r.setProperty("--bg-"+m,t[m][0]);r.setProperty("--acc-"+m,t[m][1]);lightModes[m]=lum(t[m][0])>.5;});
   if(typeof render==="function")render();
@@ -291,10 +297,10 @@ function renderThemes(){
   const sw=el("span",{className:"sw"});
   const input=el("input",{id:"theme-custom",type:"color",value:validHex(theme.custom)},{"aria-label":"Escolher cor personalizada"});
   sw.appendChild(input);c.append(sw,"Sua cor");box.appendChild(c);
-  input.addEventListener("input",e=>{const v=validHex(e.target.value,null);if(!v)return;theme={id:"custom",custom:v};store.set("capi-theme",theme);applyTheme();});
+  input.addEventListener("input",e=>{const v=validHex(e.target.value,null);if(!v)return;theme={id:"custom",custom:v,same:theme.same};store.set("capi-theme",theme);applyTheme();});
   Object.entries(THEMES).forEach(([id,t])=>{
     const b=el("button",{type:"button",className:"theme"});b.dataset.theme=id;
-    const swatch=el("span",{className:"sw"});swatch.style.background="conic-gradient("+t.pomo[0]+" 0 33%,"+t.short[0]+" 0 66%,"+t.long[0]+" 0)";
+    const swatch=el("span",{className:"sw"});const v=theme.same?uniform(t):t;swatch.style.background=v.pomo[0]===v.short[0]&&v.pomo[0]===v.long[0]?v.pomo[0]:"conic-gradient("+v.pomo[0]+" 0 33%,"+v.short[0]+" 0 66%,"+v.long[0]+" 0)";
     b.append(swatch,t.nome);
     b.addEventListener("click",()=>{theme.id=id;store.set("capi-theme",theme);applyTheme();});
     box.appendChild(b);
@@ -311,6 +317,11 @@ function showActiveTheme(){const b=$("#themes"),a=b.querySelector('[aria-pressed
   b.style.scrollBehavior="auto";b.scrollLeft=0;if(a){const r=a.offsetLeft-b.offsetLeft+a.offsetWidth+36;if(r>b.clientWidth)b.scrollLeft=r-b.clientWidth;}b.style.scrollBehavior="";themeNav();}
 $("#btn-settings").addEventListener("click",()=>requestAnimationFrame(showActiveTheme));
 renderThemes();applyTheme();
+// mesma cor em Pomodoro e pausas (#29)
+$("#theme-same").checked=theme.same;
+$("#theme-same").addEventListener("change",()=>{theme.same=!!$("#theme-same").checked;store.set("capi-theme",theme);renderThemes();applyTheme();});
+// limpa o aviso de tempos ao editar os campos
+["pomo","short","long"].forEach(k=>$("#set-"+k).addEventListener("input",()=>{$("#set-error").hidden=true;["pomo","short","long"].forEach(j=>$("#set-"+j).setAttribute("aria-invalid","false"));}));
 // ciclo e notificação nos ajustes
 function everyHint(){const n=clampLongEvery($("#set-every").value)-1;
   $("#every-hint").textContent=n+(n===1?" pausa curta":" pausas curtas")+" e depois 1 pausa longa";}

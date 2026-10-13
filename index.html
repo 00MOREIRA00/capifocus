@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Timer pomodoro com uma capivara street e lo-fi gerado no navegador.">
 <meta name="theme-color" content="#a28bd4">
-<link rel="icon" href="assets/mascot/capy-default.png">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <title>Capifocus</title>
 <script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/mascot.css">
 <link rel="preload" href="assets/mascot/capy-default.png" as="image">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap">
+<link rel="preload" href="assets/fonts/Nunito.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/Fredoka.woff2" as="font" type="font/woff2" crossorigin>
 
 </head>
 <body>
@@ -120,6 +122,16 @@
     <div class="summary" id="summary" style="margin-top:22px"></div>
   </section>
 
+  <section class="stats" aria-labelledby="stats-title">
+    <div class="tasks-head"><h2 id="stats-title">Seu progresso</h2></div>
+    <div class="stat-row">
+      <div class="stat"><b id="st-today">0</b><span>pomodoros hoje</span></div>
+      <div class="stat"><b id="st-streak">0</b><span id="st-streak-label">dias seguidos</span></div>
+      <div class="stat"><b id="st-week">0</b><span>nos últimos 7 dias</span></div>
+    </div>
+    <div class="week" id="week" role="list" aria-label="Pomodoros por dia nos últimos 7 dias"></div>
+  </section>
+
   <div class="confirm" id="confirm" role="alertdialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="cf-text" hidden>
     <div class="cf-back" id="cf-back"></div>
     <div class="cf-box">
@@ -133,6 +145,6 @@
 </div>
 
 <script src="js/components/mascot.js"></script>
-<script src="js/app.js"></script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

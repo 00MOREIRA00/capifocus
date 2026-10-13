@@ -10,7 +10,7 @@ A ideia é simples: deixar a técnica pomodoro mais leve e divertida, sem cadast
 
 A técnica pomodoro divide o trabalho em blocos de foco (normalmente 25 minutos) separados por pausas curtas. A cada quatro blocos, vem uma pausa mais longa. O Capifocus segue esse ciclo e cuida da parte chata para você: conta o tempo, avisa quando acaba, alterna entre foco e pausa e registra quantos pomodoros cada tarefa levou.
 
-O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não tem framework, build, back-end nem dependências para instalar.
+O projeto é feito em HTML, CSS e JavaScript puros, organizado em módulos ES. Não tem framework, build, back-end nem dependências para instalar, e funciona offline depois da primeira visita.
 
 ### Funcionalidades
 
@@ -19,7 +19,9 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
 - **Timer salvo:** recarregar ou fechar a página não perde o timer. Ele continua contando, e se a etapa terminar com o app fechado ela é registrada ao abrir de novo.
 - **Confirmação ao trocar de etapa:** com o timer rodando, trocar de aba pede confirmação antes de descartar o tempo.
 - **Tela acesa no foco:** no celular, a tela não apaga enquanto um foco está rodando (onde o navegador suportar).
-- **Notificação opcional:** aviso do navegador ao fim de cada etapa quando o app está em segundo plano. No Android, depende de um service worker, que o app ainda não tem.
+- **Notificação opcional:** aviso do navegador ao fim de cada etapa quando o app está em segundo plano, inclusive no Android (pelo service worker).
+- **Seu progresso:** pomodoros de hoje, dias seguidos com pelo menos um pomodoro e um gráfico dos últimos 7 dias. Só focos completos contam.
+- **Instalável e offline:** dá para instalar o Capifocus como app no celular ou no computador, e ele abre mesmo sem internet. As fontes ficam no próprio projeto.
 - **Controles do timer:** começar, pausar, reiniciar e pular etapa. A barra de espaço também começa e pausa (exceto quando o foco está num campo ou seletor). Pular um foco não conta como pomodoro concluído nem aproxima a pausa longa.
 - **Tempo na aba do navegador:** o título da aba mostra o tempo restante e o modo, por exemplo "18:42 · Foco | Capifocus".
 - **Capivara animada:** cada modo tem uma cena própria, que só ganha movimento com o timer rodando.
@@ -35,10 +37,10 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
   Com "Tocar nas pausas" desligado, a música acompanha o timer: para ao pausar ou reiniciar e volta ao continuar. Ligado, ela segue tocando mesmo com o timer pausado.
 - **Controles de mídia do sistema:** a Capi Rádio aparece na notificação e na tela de bloqueio do celular (Android), na central de mídia do Windows e do macOS e nos botões dos fones, com o nome da estação, o modo atual e botões de tocar, pausar e trocar de estação. No Android, a música continua tocando com o navegador minimizado.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
-- **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término. Ao concluir uma tarefa, a capivara comemora com confete, um balão de parabéns e um somzinho.
+- **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término. Mude a ordem arrastando o cartão (no celular, segure um instante antes de arrastar) ou, pelo teclado, com Alt+↑ e Alt+↓. Ao concluir uma tarefa, a capivara comemora com confete, um balão de parabéns e um somzinho.
 - **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor personalizada, inclusive preto e branco. Em fundos claros, textos e botões ficam escuros automaticamente, escolhidos nos ajustes. Cada modo ganha um tom próprio a partir do tema.
 - **Ajustes:** duração de cada modo, tema de cor e configurações do alarme.
-- **Tudo salvo no navegador:** tarefas, ajustes, tema e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
+- **Tudo salvo no navegador:** tarefas, ajustes, tema, estatísticas e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
 
 ### Como o lo-fi funciona
 
@@ -69,15 +71,9 @@ cd capifocus
 
 Ou, no GitHub, clique em **Code → Download ZIP** e extraia a pasta.
 
-### 2. Abrir no navegador
+### 2. Rodar com um servidor local
 
-**Opção A: abrir o arquivo direto**
-
-Dê dois cliques no `index.html`. Pronto, o app já funciona.
-
-**Opção B: rodar com um servidor local** (recomendado para desenvolver)
-
-Escolha uma das opções abaixo, rode o comando dentro da pasta do projeto e abra o endereço indicado no navegador.
+O app usa módulos JavaScript e service worker, que os navegadores só carregam por `http://`. Por isso, abrir o `index.html` com dois cliques não funciona: rode um servidor local dentro da pasta do projeto e abra o endereço indicado.
 
 Com Python:
 
@@ -100,7 +96,8 @@ Com VS Code: instale a extensão **Live Server**, clique com o botão direito no
 ### Observações
 
 - O som só começa depois de um clique na página. É uma regra dos navegadores para evitar áudio automático.
-- As fontes vêm do Google Fonts. Sem internet, o app funciona normalmente com uma fonte padrão do sistema.
+- As fontes Fredoka e Nunito ficam em `assets/fonts/`, então o app não depende de nenhum serviço externo.
+- O service worker guarda o app para uso offline. Online, ele sempre busca a versão mais nova; para forçar uma limpeza, use "Limpar dados do site" no navegador.
 - Para zerar tarefas e ajustes, limpe os dados do site no navegador (o `localStorage`).
 
 ---
@@ -109,24 +106,30 @@ Com VS Code: instale a extensão **Live Server**, clique com o botão direito no
 
 ```text
 capifocus/
-??? index.html
-??? assets/mascot/
-?   ??? capy-default.png
-?   ??? capy-focus.png
-?   ??? capy-break.png
-?   ??? capy-completed.png
-?   ??? capy-radio.png
-??? css/
-?   ??? app.css
-?   ??? mascot.css
-??? js/
-?   ??? app.js
-?   ??? components/mascot.js
-??? tests/mascot.test.cjs
-??? README.md
+├── index.html              página e marcação
+├── manifest.json           dados do app instalável (nome, ícones, cores)
+├── sw.js                   service worker: cache offline e notificações
+├── css/
+│   ├── app.css             estilos do app
+│   └── mascot.css          estilos do mascote
+├── js/
+│   ├── app.js              módulo principal: liga tudo à página
+│   ├── dom.js              seletor, armazenamento, criação de elementos e avisos
+│   ├── timer.js            regras do ciclo Pomodoro (funções puras)
+│   ├── stats.js            estatísticas por dia (funções puras)
+│   ├── tasks.js            lista de tarefas e resumo
+│   ├── lofi.js             Capi Rádio (Web Audio API)
+│   ├── theme.js            temas de cor, carregado antes para evitar piscar a cor
+│   └── components/mascot.js  componente do mascote
+├── assets/
+│   ├── mascot/             cinco poses da capivara (PNG)
+│   ├── icons/              ícones do app instalável
+│   └── fonts/              Fredoka e Nunito (woff2) com as licenças OFL
+├── tests/                  testes de regressão (Node.js, sem dependências)
+└── specs/                  especificações e notas de release
 ```
 
-`js/app.js` cont?m timer, tarefas, ajustes, r?dio e temas. `css/app.css` cont?m os estilos do aplicativo e do SVG antigo, preservado como fallback. O componente novo tem seus scripts e estilos separados. Os assets fornecidos s?o PNGs transparentes; n?o foram convertidos em SVG.
+`js/app.js` é carregado como módulo (`<script type="module">`) e importa os demais. `js/theme.js` e `js/components/mascot.js` continuam como scripts comuns, carregados antes, para o tema e a capivara aparecerem antes do restante.
 
 ---
 
@@ -148,18 +151,19 @@ capifocus/
 
 ## Personalizando
 
-- **Tempos padrão:** procure `{pomo:25,short:5,long:15}` no JavaScript.
+- **Tempos padrão:** procure `{pomo:25,short:5,long:15}` em `js/app.js`. As regras do ciclo ficam em `js/timer.js`.
 - **Cores:** pelo app, em Ajustes → Tema. No código, edite ou adicione temas na lista `THEMES` (cada um define a cor de fundo e a cor de destaque de cada modo).
-- **Estações:** cada estação fica no objeto `ST`, dentro do bloco `Lofi`, com andamento (`bpm`), swing, efeitos, progressões de acordes (`progs`, em notas MIDI) e a função `play`, que define o que toca em cada passo do compasso. Para criar uma estação nova, copie uma existente e ajuste.
+- **Estações:** cada estação fica no objeto `ST`, em `js/lofi.js`, com andamento (`bpm`), swing, efeitos, progressões de acordes (`progs`, em notas MIDI) e a função `play`, que define o que toca em cada passo do compasso. Para criar uma estação nova, copie uma existente e ajuste.
 
 ---
 
 ## Tecnologias
 
-- HTML, CSS e JavaScript puros
+- HTML, CSS e JavaScript puros, com módulos ES
 - SVG para a ilustração e as animações
 - Web Audio API para o lo-fi e o alarme
-- Fontes [Fredoka](https://fonts.google.com/specimen/Fredoka) e [Nunito](https://fonts.google.com/specimen/Nunito)
+- Service worker e Web App Manifest para uso offline e instalação
+- Fontes [Fredoka](https://fonts.google.com/specimen/Fredoka) e [Nunito](https://fonts.google.com/specimen/Nunito), hospedadas no projeto (SIL Open Font License)
 
 ---
 
@@ -167,13 +171,11 @@ Feito com calma de capivara. 🦫
 
 ## Mascote 2.0
 
-`js/components/mascot.js` exp?e `CapiMascot.create(host, options)` e o resolvedor puro `CapiMascot.resolve(context)`. O componente aceita `size` (`sm`, `md`, `lg`), `animated` e `className`; a inst?ncia oferece `update({mode, running, playing})` e `complete()`. O mapa de imagens ? centralizado em `CapiMascot.assets`.
+`js/components/mascot.js` expõe `CapiMascot.create(host, options)` e o resolvedor puro `CapiMascot.resolve(context)`. O componente aceita `size` (`sm`, `md`, `lg`), `animated` e `className`; a instância oferece `update({mode, running, playing})` e `complete()`. O mapa de imagens é centralizado em `CapiMascot.assets`.
 
-Quando o timer est? pausado ou reiniciado, a express?o ? `radio` se a m?sica continuar tocando, ou `default`. As imagens s?o decorativas para leitores de tela; o mascote ? um bot?o com nome acess?vel, acion?vel por clique, Enter ou Espa?o. As imagens s?o carregadas antecipadamente e exibidas ap?s decodifica??o, em uma ?rea com propor??o fixa. O SVG anterior permanece como fallback para falha de carregamento. Caminhos relativos funcionam tamb?m no deploy em `/capifocus/`.
+Quando o timer está pausado ou reiniciado, a expressão é `radio` se a música continuar tocando, ou `default`. As imagens são decorativas para leitores de tela; o mascote é um botão com nome acessível, acionável por clique, Enter ou Espaço. As imagens são carregadas antecipadamente e exibidas após decodificação, em uma área com proporção fixa. O SVG anterior permanece como fallback para falha de carregamento. Caminhos relativos funcionam também no deploy em `/capifocus/`.
 
-Verifica??o da implementa??o: sintaxe JavaScript, prioridades dos estados, expira??o da comemora??o, exist?ncia dos assets e integridade/transpar?ncia dos cinco PNGs. A revis?o visual no navegador em desktop e mobile ainda est? pendente; n?o havia navegador conectado na sess?o de implementa??o. N?o h? lint ou build configurados. Rode `node tests/mascot.test.cjs` para verificar o componente e `node --check js/app.js` para verificar a sintaxe do aplicativo.
-
-Anima??es: entrada suave na primeira imagem decodificada; transi??o de opacidade entre poses; respira??o lenta no repouso, foco e pausa; balan?o na r?dio; pulo com aterrissagem na conclus?o; rea??o breve ao clicar. `animated: false` desativa movimentos e transi??es. Movimento reduzido desativa tamb?m a entrada e a rea??o ao clique. N?o h? quadros intermedi?rios para piscar ou mover membros independentemente.
+Animações: entrada suave na primeira imagem decodificada; transição de opacidade entre poses; respiração lenta no repouso, foco e pausa; balanço na rádio; pulo com aterrissagem na conclusão; reação breve ao clicar. `animated: false` desativa movimentos e transições. Movimento reduzido desativa também a entrada e a reação ao clique.
 
 ## Testes de regressão
 
@@ -194,7 +196,7 @@ Não precisa executar `npm install`, iniciar o servidor do app ou abrir o navega
 Se tudo passar, o resultado termina com:
 
 ```text
-5/5 test files passed
+7/7 test files passed
 ```
 
 Se algum teste falhar, o terminal mostra o cenário, o resultado esperado e o resultado obtido. O comando termina com código de saída diferente de zero. Corrija a falha e execute novamente antes de publicar a alteração.
@@ -211,7 +213,13 @@ node tests/mascot.test.cjs
 # Integração entre timer e mascote
 node tests/timer-mascot.test.cjs
 
-# Caminhos de scripts, estilos e imagens sob /capifocus/
+# Regras do timer (funções puras de js/timer.js)
+node tests/timer-logic.test.cjs
+
+# Estatísticas por dia (js/stats.js)
+node tests/stats.test.cjs
+
+# Caminhos, módulos, fontes, manifest e cache offline sob /capifocus/
 node tests/static-paths.test.cjs
 ```
 

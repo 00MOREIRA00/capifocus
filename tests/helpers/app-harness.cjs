@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { APP_MODULES, runModules } = require('./esm.cjs');
 
 // Execute the entire production app without exposing its private functions.
 // DOM and audio are simulated; assertions use public events and saved data.
@@ -75,9 +76,10 @@ module.exports = function createApp(saved = new Map(), options = {}) {
     setInterval(fn, ms) { intervals.set(++id, { fn, ms }); return id; }, clearInterval: key => intervals.delete(key),
     setTimeout(fn, ms) { timeouts.set(++id, { fn, at: now + ms }); return id; }, clearTimeout: key => timeouts.delete(key)
   };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../js/theme.js'), 'utf8'), sandbox);
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js/theme.js'), 'utf8'), sandbox);
   sandbox.CapiTheme = window.CapiTheme;
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../js/app.js'), 'utf8'), sandbox);
+  runModules(APP_MODULES, sandbox);
   return {
     document,
     // pressiona uma tecla com o foco no elemento indicado (tagName e, opcionalmente, isContentEditable)

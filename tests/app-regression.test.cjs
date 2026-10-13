@@ -314,3 +314,37 @@ test('#14: notificação ao fim da etapa, com permissão pedida no clique', asyn
   focused.get('#main').click(); focused.advance(25 * 60000);
   assert.equal(focused.notifications.length, 0, 'com o app na frente basta o alarme');
 });
+
+test('#18: estatísticas contam só focos completos e aparecem na tela', () => {
+  const app = createApp();
+  assert.equal(app.get('#st-today').textContent, '0');
+  app.get('#main').click(); app.advance(25 * 60000);
+  app.get('#main').click(); app.get('#skip').click();          // pula a pausa
+  app.get('#main').click(); app.advance(1000); app.get('#skip').click();   // pula um foco: não conta
+  const stats = app.data('capi-stats');
+  assert.equal(Object.values(stats.days).reduce((a, b) => a + b, 0), 1);
+  assert.equal(app.get('#st-today').textContent, '1');
+  assert.equal(app.get('#st-week').textContent, '1');
+  assert.equal(app.get('#st-streak').textContent, '1');
+  assert.equal(app.get('#st-streak-label').textContent, 'dia seguido');
+  assert.equal(app.get('#week').children.length, 7);
+  const restored = createApp(app.saved);
+  assert.equal(restored.get('#st-today').textContent, '1', 'fica salvo no navegador');
+});
+
+test('reordenar tarefas: ordem nova fica salva; Alt+setas movem pelo teclado', () => {
+  const app = createApp();
+  for (const name of ['A', 'B', 'C']) { app.get('#nt-name').value = name; app.get('#newtask').emit('submit'); }
+  const names = () => app.data('capi-tasks').map(t => t.name);
+  const item = i => app.get('#tasks').children[i];
+  item(0).emit('keydown', { key: 'ArrowDown', altKey: true });
+  assert.deepEqual(names(), ['B', 'A', 'C']);
+  item(2).emit('keydown', { key: 'ArrowUp', altKey: true });
+  assert.deepEqual(names(), ['B', 'C', 'A']);
+  item(0).emit('keydown', { key: 'ArrowUp', altKey: true });
+  assert.deepEqual(names(), ['B', 'C', 'A'], 'primeira não sobe além do topo');
+  item(1).emit('keydown', { key: 'ArrowDown' });
+  assert.deepEqual(names(), ['B', 'C', 'A'], 'sem Alt não move');
+  assert.equal(app.data('capi-active'), app.data('capi-tasks')[2].id, 'tarefa ativa continua a mesma');
+  assert.deepEqual(createApp(app.saved).data('capi-tasks').map(t => t.name), ['B', 'C', 'A']);
+});

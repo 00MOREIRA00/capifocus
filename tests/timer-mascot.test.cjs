@@ -17,7 +17,7 @@ function node(selector) {
 }
 const sandbox = {
   CapiMascot: { create: () => ({ update: context => contexts.push(context), complete: () => celebrations++ }) },
-  document: { querySelector: node, querySelectorAll: () => [], body: {} },
+  document: { querySelector: node, querySelectorAll: () => [], body: { classList: { toggle() {} } }, title: '' },
   window: {}, localStorage: { getItem: () => null, setItem() {} },
   Date: { now: () => now },
   setInterval(fn) { tick = fn; return 1; }, clearInterval() { tick = null; }

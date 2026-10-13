@@ -9,9 +9,16 @@
   let tasks=store.get("capi-tasks",[]);
   let activeId=store.get("capi-active",tasks[0]?tasks[0].id:null);
   let count=store.get("capi-count",1);
+  const lightModes={pomo:false,short:false,long:false};   // modo com fundo claro (texto escuro), calculado pelo tema
   let mode="pomo", left=mins.pomo*60, total=left, running=false, endAt=0, tick=null;
 
   const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  const TITLE_MODE={pomo:"Foco",short:"Pausa curta",long:"Pausa longa"};
+  let lastTitle="";
+  function updateTitle(){
+    const t=(running||left<total)?(running?"":"⏸ ")+fmt(left)+" · "+TITLE_MODE[mode]+" | Capifocus":"Capifocus";
+    if(t!==lastTitle){lastTitle=t;document.title=t;}
+  }
   function render(){
     mascot.update({mode,running,playing});
     $("#time").textContent=fmt(left);
@@ -20,7 +27,12 @@
     $("#main").classList.toggle("running",running);
     $("#skip").hidden=!(running||left<total);
     $("#reset").hidden=!(left<total);
-    document.body.className=mode+(running?" running":"")+(window.__ring?" ringing":"")+(window.__isLight&&window.__isLight(mode)?" on-light":"")+(window.__cele?" celebrate":"");
+    // cada classe de estado é ligada/desligada sozinha; "ringing" e "celebrate" são cuidadas pelo alarme e pela comemoração
+    const B=document.body.classList;
+    ["pomo","short","long"].forEach(m=>B.toggle(m,m===mode));
+    B.toggle("running",running);
+    B.toggle("on-light",!!lightModes[mode]);
+    updateTitle();
     const DO={pomo:"Concentrada no foco",short:"Curtindo uma pausa",long:"Relaxando na pausa longa"};
     $("#doing").textContent=running?DO[mode]:(playing?"Curtindo a Capi Rádio":"Esperando você começar");
     document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-pressed",t.dataset.mode===mode));
@@ -45,9 +57,11 @@
     const completedNaturally=!skipping;
     stop();if(completedNaturally){chime();mascot.complete();}skipping=false;
     if(mode==="pomo"){
-      const a=tasks.find(t=>t.id===activeId);if(a){a.act++;saveTasks();}
-      const next=(count%4===0)?"long":"short";count++;store.set("capi-count",count);
-      setMode(next,true);
+      if(completedNaturally){
+        const a=tasks.find(t=>t.id===activeId);if(a){a.act++;saveTasks();}
+        const next=(count%4===0)?"long":"short";count++;store.set("capi-count",count);
+        setMode(next,true);
+      }else setMode("short",true);   // foco pulado: não conta pomodoro nem aproxima a pausa longa
     }else setMode("pomo",true);
   }
   let ctx;
@@ -70,34 +84,46 @@
       const t0=ctx.currentTime+.05;for(let i=0;i<alarm.rep;i++)A.play(t0+i*A.rep,out);
       const total=alarm.rep*A.rep+.6;
       if(typeof Lofi!=="undefined")Lofi.duck(total);
-      window.__ring=true;document.body.classList.add("ringing");alarmTimers.push(setTimeout(()=>{window.__ring=false;document.body.classList.remove("ringing")},total*1000));
+      document.body.classList.add("ringing");alarmTimers.push(setTimeout(()=>document.body.classList.remove("ringing"),total*1000));
       alarmTimers.push(out);
     }catch(e){}
   }
-  function stopAlarm(){alarmTimers.forEach(x=>{if(typeof x==="number")clearTimeout(x);else try{x.gain.setTargetAtTime(0,ctx.currentTime,.03)}catch(e){}});alarmTimers=[];window.__ring=false;document.body.classList.remove("ringing");}
+  function stopAlarm(){alarmTimers.forEach(x=>{if(typeof x==="number")clearTimeout(x);else try{x.gain.setTargetAtTime(0,ctx.currentTime,.03)}catch(e){}});alarmTimers=[];document.body.classList.remove("ringing");}
 
   $("#main").addEventListener("click",()=>{ensureAudio();stopAlarm(); running?stop():start();});
   $("#skip").addEventListener("click",()=>{skipping=true;left=0;finish();});
   $("#reset").addEventListener("click",()=>{stop();left=total=mins[mode]*60;render();});
   document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setMode(t.dataset.mode)));
-  document.addEventListener("keydown",e=>{if(e.code==="Space"&&!/INPUT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();$("#main").click();}});
+  function typingIn(el){return !!el&&(/^(INPUT|BUTTON|TEXTAREA|SELECT)$/.test(el.tagName)||el.isContentEditable===true);}
+  document.addEventListener("keydown",e=>{if(e.code==="Space"&&!typingIn(document.activeElement)){e.preventDefault();$("#main").click();}});
 
   // tarefas
+  // monta elementos com propriedades/atributos, sem interpretar HTML (dados do localStorage nunca viram marcação)
+  function el(tag,props,attrs){const n=document.createElement(tag);if(props)Object.assign(n,props);if(attrs)for(const k in attrs)n.setAttribute(k,attrs[k]);return n;}
+  function checkIcon(){const NS="http://www.w3.org/2000/svg",svg=document.createElementNS(NS,"svg"),path=document.createElementNS(NS,"path");
+    [["width","14"],["height","14"],["viewBox","0 0 24 24"]].forEach(([k,v])=>svg.setAttribute(k,v));
+    [["d","M5 12.5l4.5 4.5L19 7.5"],["stroke","currentColor"],["stroke-width","3.2"],["fill","none"],["stroke-linecap","round"],["stroke-linejoin","round"]].forEach(([k,v])=>path.setAttribute(k,v));
+    svg.appendChild(path);return svg;}
   function saveTasks(){store.set("capi-tasks",tasks);store.set("capi-active",activeId);renderTasks();render();}
   function renderTasks(){
-    const ul=$("#tasks");ul.innerHTML="";
+    const ul=$("#tasks");ul.replaceChildren();
     tasks.forEach(t=>{
-      const li=document.createElement("li");li.dataset.id=t.id;li.className="task"+(t.id===activeId?" active":"")+(t.done?" done":"");
-      li.innerHTML='<button class="chk" type="button" aria-label="Concluir"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="name"></span><span class="pom"><b>'+t.act+'</b>/'+t.est+'</span><button class="del" type="button" aria-label="Remover">×</button>';
-      {const nt=document.createElement("span");nt.className="nt";nt.textContent=t.name;li.querySelector(".name").appendChild(nt);}
+      const li=el("li",{className:"task"+(t.id===activeId?" active":"")+(t.done?" done":"")});li.dataset.id=String(t.id);
+      const chk=el("button",{className:"chk",type:"button"},{"aria-label":"Concluir"});chk.appendChild(checkIcon());
+      const name=el("span",{className:"name"});name.appendChild(el("span",{className:"nt",textContent:String(t.name)}));
+      const pom=el("span",{className:"pom"});pom.append(el("b",{textContent:String(+t.act||0)}),"/"+(+t.est||0));
+      const del=el("button",{className:"del",type:"button",textContent:"×"},{"aria-label":"Remover"});
+      li.append(chk,name,pom,del);
       li.addEventListener("click",()=>{activeId=t.id;saveTasks();});
-      li.querySelector(".chk").addEventListener("click",e=>{e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();t.done=!t.done;saveTasks();if(t.done)celebrate(t.id,r);});
-      li.querySelector(".del").addEventListener("click",e=>{e.stopPropagation();tasks=tasks.filter(x=>x.id!==t.id);if(activeId===t.id)activeId=tasks[0]?tasks[0].id:null;saveTasks();});
+      chk.addEventListener("click",e=>{e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();t.done=!t.done;saveTasks();if(t.done)celebrate(t.id,r);});
+      del.addEventListener("click",e=>{e.stopPropagation();tasks=tasks.filter(x=>x.id!==t.id);if(activeId===t.id)activeId=tasks[0]?tasks[0].id:null;saveTasks();});
       ul.appendChild(li);
     });
     const pend=tasks.filter(t=>!t.done),rem=pend.reduce((s,t)=>s+Math.max(0,t.est-t.act),0);
     const fin=new Date(Date.now()+rem*mins.pomo*60000+Math.max(0,rem-1)*mins.short*60000);
-    $("#summary").innerHTML='<span>Pomos: <b>'+tasks.reduce((s,t)=>s+t.act,0)+'/'+tasks.reduce((s,t)=>s+t.est,0)+'</b></span><span>Termina às <b>'+fin.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'</b> ('+(rem*mins.pomo/60).toFixed(1).replace(".",",")+'h)</span>';
+    const s1=el("span",{textContent:"Pomos: "});s1.appendChild(el("b",{textContent:tasks.reduce((s,t)=>s+(+t.act||0),0)+"/"+tasks.reduce((s,t)=>s+(+t.est||0),0)}));
+    const s2=el("span",{textContent:"Termina às "});s2.append(el("b",{textContent:fin.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})})," ("+(rem*mins.pomo/60).toFixed(1).replace(".",",")+"h)");
+    $("#summary").replaceChildren(s1,s2);
     $("#summary").hidden=!tasks.length;
   }
   $("#add").addEventListener("click",()=>{$("#newtask").hidden=false;$("#add").hidden=true;$("#nt-name").focus();});
@@ -120,8 +146,8 @@
     const li=document.querySelector('.task[data-id="'+id+'"]');if(li)li.classList.add("just-done");
     $("#cheer").textContent=CHEERS[Math.floor(Math.random()*CHEERS.length)];
     mascot.complete();
-    window.__cele=true;document.body.classList.add("celebrate");clearTimeout(cheerT);
-    cheerT=setTimeout(()=>{window.__cele=false;document.body.classList.remove("celebrate");},1900);
+    document.body.classList.add("celebrate");clearTimeout(cheerT);
+    cheerT=setTimeout(()=>document.body.classList.remove("celebrate"),1900);
     if(!matchMedia("(prefers-reduced-motion: reduce)").matches)confetti(r.left+r.width/2,r.top+r.height/2);
     doneSound();
   }
@@ -294,8 +320,27 @@
     }
     function fx(now){const S=ST[cur],t=c.currentTime,k=now?.001:.6;
       lp.frequency.setTargetAtTime(S.cut,t,k);lfoG.gain.setTargetAtTime(S.wobble,t,k);wet.gain.setTargetAtTime(S.wet,t,k);}
+    // Agendador: com a aba visível, agenda 0,2 s à frente (troca de estação responde rápido).
+    // Em segundo plano o navegador atrasa os timers, então agenda 1,5 s à frente para não faltar nota.
+    // O "tique" vem de um Web Worker, que sofre menos com essa desaceleração do que a página.
+    let ticker=null,ticking=false;
+    const ahead=()=>(typeof document!=="undefined"&&document.hidden)?1.5:.2;
+    function startTick(){
+      if(ticking)return;ticking=true;
+      if(ticker===null){
+        try{
+          const src="let t=null;onmessage=e=>{clearInterval(t);if(e.data>0)t=setInterval(()=>postMessage(0),e.data)}";
+          ticker=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));
+          ticker.onmessage=sched;
+          ticker.onerror=()=>{ticker=false;if(ticking){ticking=false;startTick();}};   // bloqueado: usa o timer da página
+        }catch(e){ticker=false;}
+      }
+      if(ticker)ticker.postMessage(25);else timer=setInterval(sched,25);
+    }
+    function stopTick(){ticking=false;if(ticker)ticker.postMessage(0);clearInterval(timer);timer=null;}
     function sched(){const S=ST[cur];
-      while(next<c.currentTime+.15){const P=S.progs[prog%S.progs.length];
+      if(next<c.currentTime-.05){next=c.currentTime+.05;step=0;}   // ficou para trás: recomeça o compasso em vez de despejar notas atrasadas
+      while(next<c.currentTime+ahead()){const P=S.progs[prog%S.progs.length];
         S.play(step,next+((step%4===2)?S.s16*S.swing:0),P.ch[bar],P.bs[bar]);
         next+=S.s16;step=(step+1)%16;
         if(step===0){bar=(bar+1)%4;if(bar===0){if(Math.random()<.5)prog=Math.floor(Math.random()*S.progs.length);if(S.onLoop)S.onLoop();}}}}
@@ -309,9 +354,9 @@
       music(want){
         if(!c||want===on)return;on=want;const now=c.currentTime;
         music.gain.cancelScheduledValues(now);music.gain.setValueAtTime(music.gain.value,now);
-        if(want){clearTimeout(stopT);if(!timer){next=now+.06;step=0;bar=0;timer=setInterval(sched,25);}music.gain.linearRampToValueAtTime(1,now+1.5);
+        if(want){clearTimeout(stopT);if(!ticking){next=now+.06;step=0;bar=0;startTick();}music.gain.linearRampToValueAtTime(1,now+1.5);
           if(mediaEl){const pr=mediaEl.play();if(pr&&pr.catch)pr.catch(()=>{mediaEl=null;try{master.disconnect()}catch(_){}master.connect(c.destination);});}}
-        else{music.gain.linearRampToValueAtTime(0,now+1);stopT=setTimeout(()=>{clearInterval(timer);timer=null;if(mediaEl)mediaEl.pause();},1100);}
+        else{music.gain.linearRampToValueAtTime(0,now+1);stopT=setTimeout(()=>{stopTick();if(mediaEl)mediaEl.pause();},1100);}
       }
     };
   })();
@@ -376,9 +421,10 @@
   $("#al-test").addEventListener("click",()=>{readAlarm();const r=alarm.rep;alarm.rep=1;chime();alarm.rep=r;});
   // ---------- temas de cor ----------
   const {THEMES,customTheme,lum}=CapiTheme;
-  const lightModes={pomo:false,short:false,long:false};
-  window.__isLight=m=>lightModes[m];
+  function validHex(v,fallback="#a28bd4"){return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)?v.toLowerCase():fallback;}
   let theme=store.get("capi-theme",{id:"lavanda",custom:"#a28bd4"});
+  if(!theme||typeof theme!=="object")theme={id:"lavanda",custom:"#a28bd4"};
+  theme={id:(theme.id==="custom"||Object.prototype.hasOwnProperty.call(THEMES,theme.id))?theme.id:"lavanda",custom:validHex(theme.custom)};
   function applyTheme(){
     const t=theme.id==="custom"?customTheme(theme.custom):(THEMES[theme.id]||THEMES.lavanda);
     const r=document.documentElement.style;
@@ -388,14 +434,16 @@
     document.querySelectorAll(".theme").forEach(b=>b.setAttribute("aria-pressed",b.dataset.theme===theme.id));
   }
   function renderThemes(){
-    const box=$("#themes");box.innerHTML="";
-    const c=document.createElement("label");c.className="theme custom";c.dataset.theme="custom";c.setAttribute("for","theme-custom");
-    c.innerHTML='<span class="sw"><input id="theme-custom" type="color" value="'+theme.custom+'" aria-label="Escolher cor personalizada"></span>Sua cor';
-    box.appendChild(c);
-    c.querySelector("input").addEventListener("input",e=>{theme={id:"custom",custom:e.target.value};store.set("capi-theme",theme);applyTheme();});
+    const box=$("#themes");box.replaceChildren();
+    const c=el("label",{className:"theme custom"},{for:"theme-custom"});c.dataset.theme="custom";
+    const sw=el("span",{className:"sw"});
+    const input=el("input",{id:"theme-custom",type:"color",value:validHex(theme.custom)},{"aria-label":"Escolher cor personalizada"});
+    sw.appendChild(input);c.append(sw,"Sua cor");box.appendChild(c);
+    input.addEventListener("input",e=>{const v=validHex(e.target.value,null);if(!v)return;theme={id:"custom",custom:v};store.set("capi-theme",theme);applyTheme();});
     Object.entries(THEMES).forEach(([id,t])=>{
-      const b=document.createElement("button");b.type="button";b.className="theme";b.dataset.theme=id;
-      b.innerHTML='<span class="sw" style="background:conic-gradient('+t.pomo[0]+' 0 33%,'+t.short[0]+' 0 66%,'+t.long[0]+' 0)"></span>'+t.nome;
+      const b=el("button",{type:"button",className:"theme"});b.dataset.theme=id;
+      const swatch=el("span",{className:"sw"});swatch.style.background="conic-gradient("+t.pomo[0]+" 0 33%,"+t.short[0]+" 0 66%,"+t.long[0]+" 0)";
+      b.append(swatch,t.nome);
       b.addEventListener("click",()=>{theme.id=id;store.set("capi-theme",theme);applyTheme();});
       box.appendChild(b);
     });

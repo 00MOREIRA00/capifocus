@@ -15,7 +15,8 @@ O projeto foi feito em HTML, CSS e JavaScript puros, num único arquivo. Não te
 ### Funcionalidades
 
 - **Três modos:** Pomodoro, Pausa curta e Pausa longa, cada um com sua cor. A pausa longa entra automaticamente a cada 4 pomodoros.
-- **Controles do timer:** começar, pausar, reiniciar e pular etapa. A barra de espaço também começa e pausa.
+- **Controles do timer:** começar, pausar, reiniciar e pular etapa. A barra de espaço também começa e pausa (exceto quando o foco está num campo ou seletor). Pular um foco não conta como pomodoro concluído nem aproxima a pausa longa.
+- **Tempo na aba do navegador:** o título da aba mostra o tempo restante e o modo, por exemplo "18:42 · Foco | Capifocus".
 - **Capivara animada:** cada modo tem uma cena própria, que só ganha movimento com o timer rodando.
 - **Capi Rádio:** música gerada ao vivo no navegador, com cinco estações:
   - **Lo-fi clássico:** batida lenta com swing e acordes jazzy.

@@ -127,3 +127,81 @@ test('#3: controles de mídia do sistema mostram a estação e controlam a rádi
   ms.handlers.play();
   assert.equal(app.context().playing, true); assert.equal(ms.playbackState, 'playing');
 });
+
+test('#9: pular o foco não conta pomodoro nem aproxima a pausa longa', () => {
+  const app = createApp();
+  app.get('#nt-name').value = 'Ler'; app.get('#nt-est').value = 3; app.get('#newtask').emit('submit');
+  app.get('#main').click(); app.advance(5000); app.get('#skip').click();
+  assert.equal(app.context().mode, 'short');
+  assert.equal(app.data('capi-tasks')[0].act, 0, 'tarefa não ganha pomodoro');
+  assert.equal(app.get('#count').textContent, '#1', 'ciclo não avança');
+  app.get('#main').click(); app.get('#skip').click();          // pula a pausa: volta ao foco
+  assert.equal(app.context().mode, 'pomo');
+  for (let i = 1; i <= 3; i++) {                                 // três focos completos
+    app.get('#main').click(); app.advance(25 * 60000);
+    app.get('#main').click(); app.advance(5 * 60000);
+  }
+  assert.equal(app.get('#count').textContent, '#4');
+  app.get('#main').click(); app.advance(1000); app.get('#skip').click();
+  assert.equal(app.context().mode, 'short', 'pular o 4º foco não libera a pausa longa');
+  assert.equal(app.get('#count').textContent, '#4');
+  app.get('#main').click(); app.get('#skip').click();
+  app.get('#main').click(); app.advance(25 * 60000);
+  assert.equal(app.context().mode, 'long', 'o 4º foco completo libera a pausa longa');
+  assert.equal(app.data('capi-tasks')[0].act, 4);
+});
+
+test('#12: barra de espaço não controla o timer com foco em campos e seletores', () => {
+  const app = createApp();
+  for (const tagName of ['SELECT', 'INPUT', 'TEXTAREA', 'BUTTON']) {
+    assert.equal(app.key('Space', { tagName }), false, tagName);
+    assert.equal(app.context().running, false, tagName);
+  }
+  assert.equal(app.key('Space', { tagName: 'DIV', isContentEditable: true }), false);
+  assert.equal(app.context().running, false);
+  assert.equal(app.key('Space'), true);
+  assert.equal(app.context().running, true, 'fora de campos o espaço inicia o timer');
+});
+
+test('#13: título da aba mostra o tempo restante e o modo', () => {
+  const app = createApp();
+  assert.equal(app.document.title, 'Capifocus');
+  app.get('#main').click(); app.advance(5000);
+  assert.equal(app.document.title, '24:55 · Foco | Capifocus');
+  app.get('#main').click();
+  assert.equal(app.document.title, '⏸ 24:55 · Foco | Capifocus');
+  app.get('#reset').click();
+  assert.equal(app.document.title, 'Capifocus');
+  app.tabs[1].click(); app.get('#main').click(); app.advance(1000);
+  assert.equal(app.document.title, '04:59 · Pausa curta | Capifocus');
+});
+
+test('#22: render liga e desliga só as classes de estado do body', () => {
+  const app = createApp();
+  const body = app.document.body.classList;
+  body.add('classe-externa');
+  app.get('#main').click(); app.advance(1000);
+  assert.ok(body.contains('pomo') && body.contains('running'));
+  assert.ok(body.contains('classe-externa'), 'outras classes sobrevivem ao render');
+  app.get('#nt-name').value = 'Teste'; app.get('#newtask').emit('submit');
+  app.get('#tasks').children[0].querySelector('.chk').click();
+  app.advance(500);
+  assert.ok(body.contains('celebrate'), 'comemoração não é apagada pelo próximo render');
+  app.get('#main').click(); app.tabs[2].click();
+  assert.ok(body.contains('long') && !body.contains('pomo') && !body.contains('running'));
+});
+
+test('#23: textos e cores do localStorage não viram HTML', () => {
+  const evil = '<img src=x onerror="alert(1)">';
+  const saved = new Map([
+    ['capi-tasks', JSON.stringify([{ id: 1, name: evil, est: 2, act: 0, done: false }])],
+    ['capi-theme', JSON.stringify({ id: 'custom', custom: 'red;"><script>alert(1)</script>' })]
+  ]);
+  const app = createApp(saved);
+  const li = app.get('#tasks').children[0];
+  assert.equal(li.querySelector('.nt').textContent, evil, 'nome aparece como texto');
+  assert.equal(li.innerHTML, '', 'nenhum HTML montado por string');
+  const custom = app.get('#themes').children[0];
+  assert.equal(custom.children[0].children[0].value, '#a28bd4', 'cor inválida volta ao padrão');
+  assert.equal(app.get('#summary').innerHTML, '');
+});

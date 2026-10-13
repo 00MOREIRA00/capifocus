@@ -6,6 +6,7 @@ const vm = require('node:vm');
 // DOM and audio are simulated; assertions use public events and saved data.
 module.exports = function createApp(saved = new Map()) {
   const elements = new Map();
+  const docEvents = {};
   const intervals = new Map();
   const timeouts = new Map();
   let now = 1000000, id = 0, celebrations = 0, context;
@@ -19,7 +20,13 @@ module.exports = function createApp(saved = new Map()) {
         toggle(n, on) { if (on === undefined) on = !classes.has(n); on ? classes.add(n) : classes.delete(n); } },
       setAttribute(n, v) { this.attributes[n] = v; },
       appendChild(child) { this.children.push(child); },
-      querySelector(q) { if (!queries.has(q)) queries.set(q, element()); return queries.get(q); },
+      append(...nodes) { this.children.push(...nodes); },
+      replaceChildren(...nodes) { this.children = [...nodes]; },
+      querySelector(q) {
+        // ".classe" procura entre os filhos criados pelo app; outros seletores continuam simulados
+        if (q.startsWith('.')) { const found = findByClass(this, q.slice(1)); if (found) return found; }
+        if (!queries.has(q)) queries.set(q, element()); return queries.get(q);
+      },
       addEventListener(event, fn) { (this.events[event] ||= []).push(fn); },
       emit(event, details = {}) {
         const e = { preventDefault() {}, stopPropagation() {}, currentTarget: this, target: this, ...details };
@@ -32,12 +39,22 @@ module.exports = function createApp(saved = new Map()) {
     Object.defineProperty(el, 'innerHTML', { get: () => html, set(value) { html = value; el.children = []; queries.clear(); } });
     return el;
   }
+  function findByClass(root, cls) {
+    for (const child of root.children || []) {
+      if (child && typeof child === 'object') {
+        if (String(child.className || '').split(/\s+/).includes(cls)) return child;
+        const deep = findByClass(child, cls); if (deep) return deep;
+      }
+    }
+    return null;
+  }
   function get(q) { if (!elements.has(q)) elements.set(q, element()); return elements.get(q); }
   const tabs = ['pomo', 'short', 'long'].map(mode => { const tab = element(); tab.dataset.mode = mode; return tab; });
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const document = {
-    querySelector: get, querySelectorAll: q => q === '.tab' ? tabs : [], createElement: element,
-    body: element(), documentElement: element(), activeElement: { tagName: 'BODY' }, addEventListener() {}
+    querySelector: get, querySelectorAll: q => q === '.tab' ? tabs : [], createElement: element, createElementNS: (ns, tag) => element(), title: '',
+    body: element(), documentElement: element(), activeElement: { tagName: 'BODY' },
+    addEventListener(event, fn) { (docEvents[event] ||= []).push(fn); }
   };
   const window = { addEventListener() {} };
   // Controles de mídia do sistema simulados (Media Session API)
@@ -55,6 +72,13 @@ module.exports = function createApp(saved = new Map()) {
   sandbox.CapiTheme = window.CapiTheme;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../js/app.js'), 'utf8'), sandbox);
   return {
+    document,
+    // pressiona uma tecla com o foco no elemento indicado (tagName e, opcionalmente, isContentEditable)
+    key(code, active = { tagName: 'BODY' }) {
+      document.activeElement = active; let prevented = false;
+      for (const fn of docEvents.keydown || []) fn({ code, key: code === 'Space' ? ' ' : code, preventDefault() { prevented = true; } });
+      document.activeElement = { tagName: 'BODY' }; return prevented;
+    },
     get, tabs, saved, mediaSession, context: () => context, celebrations: () => celebrations,
     data: key => JSON.parse(saved.get(key)),
     advance(ms) {

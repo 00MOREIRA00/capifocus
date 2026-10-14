@@ -70,7 +70,7 @@ async function run() {
   let failedView;
   M.create({ querySelector: () => null, insertBefore(v) { failedView = v; } });
   images[initialCount].onerror();
-  assert.equal(failedView.children.length, 5, 'only the five new poses exist after network failure');
+  assert.equal(failedView.children.length, 6, 'only the six poses exist after network failure');
   assert.equal(failedView.dataset.state, undefined, 'no old mascot appears on failure');
   await images[initialCount].onload();
   assert.equal(failedView.dataset.state, 'default', 'new pose appears after successful retry');
@@ -79,8 +79,29 @@ async function run() {
   M.create({ querySelector: () => null, insertBefore(v) { decodeView = v; } });
   images[decodeIndex].decode = async () => { throw new Error('invalid image'); };
   await images[decodeIndex].onload();
-  assert.equal(decodeView.children.length, 5);
+  assert.equal(decodeView.children.length, 6);
   assert.equal(decodeView.dataset.state, undefined, 'no old mascot appears on decoding failure');
+  // #8: cliques seguidos deixam a capivara bolada por um tempo, e só cliques rápidos contam
+  assert.equal(M.resolve({ grumpy: true, completed: true, running: true }), 'rabugenta');
+  let clock = 0, outbursts = 0, grumpyView;
+  reduced = false;
+  M.create({ querySelector: () => null, insertBefore(v) { grumpyView = v; } }, { now: () => clock, onGrumpy: () => outbursts++ });
+  for (const img of images.slice(-6)) await img.onload();
+  timers.clear();
+  for (let i = 0; i < M.GRUMPY_CLICKS - 1; i++) { grumpyView.events.click(); clock += 300; }
+  clock += M.GRUMPY_WINDOW;                       // pausa longa: os cliques antigos não contam mais
+  grumpyView.events.click();
+  assert.equal(outbursts, 0, 'cliques espaçados não irritam');
+  for (let i = 1; i < M.GRUMPY_CLICKS; i++) { clock += 200; grumpyView.events.click(); }
+  assert.equal(outbursts, 1);
+  assert.equal(grumpyView.dataset.state, 'rabugenta');
+  for (let i = 0; i < M.GRUMPY_CLICKS; i++) grumpyView.events.click();
+  assert.equal(outbursts, 1, 'enquanto está bolada, novos cliques não reiniciam a irritação');
+  assert.equal(timers.size, 1); [...timers.values()][0]();
+  assert.equal(grumpyView.dataset.state, 'default', 'volta ao normal depois de um tempo');
+  reduced = true;
+  for (let i = 0; i < M.GRUMPY_CLICKS; i++) grumpyView.events.click();
+  assert.equal(outbursts, 2, 'movimento reduzido ainda mostra a reação, sem animação');
   for (const src of Object.values(M.assets)) assert(fs.existsSync(src));
   const html = fs.readFileSync('index.html', 'utf8');
   assert(!/<svg class="capy"/.test(html), 'old mascot removed from HTML');

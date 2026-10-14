@@ -1,7 +1,7 @@
 // Service worker do Capifocus (#19): deixa o app instalável e funcionando offline.
 // Estratégia "rede primeiro": online, sempre busca a versão mais nova (e atualiza o cache);
 // offline, usa o que ficou guardado. Assim uma versão antiga nunca fica presa no aparelho.
-const CACHE = "capifocus-v1.9.0";
+const CACHE = "capifocus-v1.10.0";
 const ASSETS = [
   "./",
   "index.html",
@@ -26,7 +26,10 @@ const ASSETS = [
   "assets/mascot/capy-focus.png",
   "assets/mascot/capy-break.png",
   "assets/mascot/capy-completed.png",
-  "assets/mascot/capy-radio.png"
+  "assets/mascot/capy-radio.png",
+  "assets/mascot/capy-rabugenta.png",
+  "assets/icons/favicon-32.png",
+  "assets/icons/favicon-192.png"
 ];
 
 self.addEventListener("install", event => {

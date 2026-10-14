@@ -1,4 +1,8 @@
-# 🦫 Capifocus
+<p align="center">
+  <img src="assets/icons/capi-face.png" alt="Rosto da capivara do Capifocus, sorrindo de fone rosa" width="140">
+</p>
+
+<h1 align="center">Capifocus</h1>
 
 **Capifocus** é um timer pomodoro minimalista com uma capivara street como companhia. Enquanto você foca, ela curte um lo-fi de fone; na pausa curta, toma um bubble tea; na pausa longa, relaxa no ofurô de óculos escuros.
 
@@ -26,7 +30,7 @@ O projeto é feito em HTML, CSS e JavaScript puros, organizado em módulos ES. N
 - **Instalável e offline:** dá para instalar o Capifocus como app no celular ou no computador, e ele abre mesmo sem internet. As fontes ficam no próprio projeto.
 - **Controles do timer:** começar, pausar, reiniciar e pular etapa. A barra de espaço também começa e pausa (exceto quando o foco está num campo ou seletor). Pular um foco não conta como pomodoro concluído nem aproxima a pausa longa.
 - **Tempo na aba do navegador:** o título da aba mostra o tempo restante e o modo, por exemplo "18:42 · Foco | Capifocus".
-- **Capivara animada:** cada modo tem uma cena própria, que só ganha movimento com o timer rodando.
+- **Capivara animada:** cada modo tem uma cena própria, que só ganha movimento com o timer rodando. E ela tem limite: clique demais nela e descubra o que acontece.
 - **Capi Rádio:** música gerada ao vivo no navegador, com cinco estações:
   - **Lo-fi clássico:** batida lenta com swing e acordes jazzy.
   - **Anime lo-fi:** progressões de J-pop e anime (como IVmaj7–III7–vim7 e a "progressão da estrada real"), piano elétrico com chorus, bateria boom-bap que "respira" junto com os acordes, melodia em frases que se repetem com variação e vocais "aah" picotados.
@@ -40,7 +44,7 @@ O projeto é feito em HTML, CSS e JavaScript puros, organizado em módulos ES. N
 - **Controles de mídia do sistema:** a Capi Rádio aparece na notificação e na tela de bloqueio do celular (Android), na central de mídia do Windows e do macOS e nos botões dos fones, com o nome da estação, o modo atual e botões de tocar, pausar e trocar de estação. No Android, a música continua tocando com o navegador minimizado.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
 - **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término. Mude a ordem arrastando o cartão (no celular, segure um instante antes de arrastar) ou, pelo teclado, com Alt+↑ e Alt+↓. Ao concluir uma tarefa, a capivara comemora com confete, um balão de parabéns e um somzinho.
-- **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor em "Sua cor". Nos temas coloridos, cada modo ganha um tom próprio; Preto e Branco usam a mesma cor em todos os modos. A opção "Mesma cor no Pomodoro e nas pausas" deixa qualquer tema com uma cor só. Em fundos claros, textos e botões ficam escuros automaticamente.
+- **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor em "Sua cor". Nos temas coloridos, cada modo ganha um tom próprio; Preto, Branco e "Sua cor" usam a mesma cor em todos os modos. A opção "Mesma cor no Pomodoro e nas pausas" deixa qualquer tema com uma cor só. Em fundos claros, textos e botões ficam escuros automaticamente.
 - **Ajustes:** duração de cada modo, pausa longa a cada N focos, início automático, tema de cor, alarme e notificação. Os tempos precisam fazer sentido entre si: a pausa curta não pode passar do Pomodoro e a pausa longa precisa ser maior que a curta. Se não fizerem, os ajustes não são salvos e o painel mostra o que corrigir.
 - **Tudo salvo no navegador:** tarefas, ajustes, tema, estatísticas e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
 
@@ -124,8 +128,8 @@ capifocus/
 │   ├── theme.js            temas de cor, carregado antes para evitar piscar a cor
 │   └── components/mascot.js  componente do mascote
 ├── assets/
-│   ├── mascot/             cinco poses da capivara (PNG)
-│   ├── icons/              ícones do app instalável
+│   ├── mascot/             seis poses da capivara e o rosto usado no ícone (PNG)
+│   ├── icons/              ícones do app, favicon e rosto do README
 │   └── fonts/              Fredoka e Nunito (woff2) com as licenças OFL
 ├── tests/                  testes de regressão (Node.js, sem dependências)
 ├── specs/                  especificações e notas de release
@@ -146,7 +150,7 @@ O app está publicado em [rneto.dev.br/capifocus](https://rneto.dev.br/capifocus
 
 - **Tempos padrão:** procure `{pomo:25,short:5,long:15}` em `js/app.js`. As regras do ciclo e a validação dos tempos (`validateDurations`) ficam em `js/timer.js`.
 - **Cores:** pelo app, em Ajustes → Tema (inclusive "Sua cor" e "Mesma cor no Pomodoro e nas pausas"). No código, edite ou adicione temas na lista `THEMES`, em `js/theme.js`: cada tema define `[fundo, destaque]` para `pomo`, `short` e `long`.
-- **Mascote:** as cinco poses ficam em `assets/mascot/` e o mapa de imagens em `CapiMascot.assets`, em `js/components/mascot.js`.
+- **Mascote:** as seis poses ficam em `assets/mascot/` e o mapa de imagens em `CapiMascot.assets`, em `js/components/mascot.js`.
 - **Estações:** cada estação fica no objeto `ST`, em `js/lofi.js`, com andamento (`bpm`), swing, efeitos, progressões de acordes (`progs`, em notas MIDI) e a função `play`, que define o que toca em cada passo do compasso. Para criar uma estação nova, copie uma existente e ajuste.
 
 ---
@@ -161,7 +165,9 @@ O app está publicado em [rneto.dev.br/capifocus](https://rneto.dev.br/capifocus
 
 ## Mascote 2.0
 
-`js/components/mascot.js` expõe `CapiMascot.create(host, options)` e o resolvedor puro `CapiMascot.resolve(context)`. O componente aceita `size` (`sm`, `md`, `lg`), `animated` e `className`; a instância oferece `update({mode, running, playing})` e `complete()`. O mapa de imagens é centralizado em `CapiMascot.assets`.
+`js/components/mascot.js` expõe `CapiMascot.create(host, options)` e o resolvedor puro `CapiMascot.resolve(context)`. O componente aceita `size` (`sm`, `md`, `lg`), `animated`, `className` e `onGrumpy`; a instância oferece `update({mode, running, playing})` e `complete()`. O mapa de imagens é centralizado em `CapiMascot.assets`.
+
+Capivara bolada: `GRUMPY_CLICKS` cliques dentro de `GRUMPY_WINDOW` ms trocam a pose para `rabugenta` por `GRUMPY_TIME` ms e chamam `onGrumpy`, que mostra uma frase no balão. As frases ficam em `GRUMBLES`, em `js/app.js`.
 
 Quando o timer está pausado ou reiniciado, a expressão é `radio` se a música continuar tocando, ou `default`. As imagens são decorativas para leitores de tela; o mascote é um botão com nome acessível, acionável por clique, Enter ou Espaço. As imagens são carregadas antecipadamente e exibidas após decodificação, em uma área com proporção fixa. Se uma imagem falhar ao carregar, a pose anterior continua visível. Caminhos relativos funcionam também no deploy em `/capifocus/`.
 

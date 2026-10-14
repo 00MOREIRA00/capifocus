@@ -147,7 +147,8 @@ body.long.running .float:nth-of-type(2){animation-delay:.7s}
 .capy-stage{position:relative;isolation:isolate}
 .cheer{position:absolute;z-index:1;top:-6px;left:50%;transform:translate(-50%,10px) scale(.8);background:#fff;color:#4a3d63;font:700 14px var(--display);padding:7px 14px;border-radius:999px;box-shadow:0 8px 20px rgba(40,20,70,.2);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .25s,transform .4s cubic-bezier(.2,.9,.25,1.4)}
 .cheer::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fff}
-body.celebrate .cheer{opacity:1;transform:translate(-50%,0) scale(1)}
+body.celebrate .cheer,body.grumpy .cheer{opacity:1;transform:translate(-50%,0) scale(1)}
+body.grumpy .cheer{white-space:normal;border-radius:18px;width:max-content;max-width:min(260px,80vw);text-align:center}
 body.celebrate .capy .breath{animation:hop .45s ease-out 3}
 @keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px) scaleY(1.03)}}
 .task .pom{font-weight:700;color:#a99cc0;font-variant-numeric:tabular-nums;white-space:nowrap}

@@ -377,3 +377,16 @@ test('#29: opção "mesma cor" é salva e restaurada', () => {
   const keep = createApp(new Map([['capi-theme', JSON.stringify({ id: 'preto', same: 'sim' })]]));
   assert.equal(keep.get('#theme-same').checked, false, 'valor inválido vira desligado');
 });
+
+test('#8: capivara bolada mostra uma frase e, a cada três reclamações, a do plano Plus', () => {
+  const app = createApp();
+  const said = [];
+  for (let i = 0; i < 6; i++) {
+    app.grumpy(); said.push(app.get('#cheer').textContent);
+    assert.equal(app.document.body.classList.contains('grumpy'), true);
+  }
+  assert.match(said[2], /plano Plus/); assert.match(said[5], /plano Plus/);
+  for (const i of [0, 1, 3, 4]) assert.doesNotMatch(said[i], /Plus/);
+  app.advance(3200);
+  assert.equal(app.document.body.classList.contains('grumpy'), false, 'balão some sozinho');
+});

@@ -7,7 +7,7 @@ import {sanitizeStats,addPomodoro,lastDays,streak} from "./stats.js";
 import {renderTaskList,moveItem} from "./tasks.js";
 import {createLofi} from "./lofi.js";
 
-const mascot=CapiMascot.create($(".capy-stage"));
+const mascot=CapiMascot.create($(".capy-stage"),{onGrumpy:()=>grumble()});
 let playing=false;
 const MSG={pomo:"Hora de focar!",short:"Hora de uma pausa!",long:"Pausa longa. Hora de relaxar."};
 let mins=store.get("capi-mins",{pomo:25,short:5,long:15});
@@ -181,11 +181,24 @@ let cheerT;
 function celebrate(id,r){
   const li=document.querySelector('.task[data-id="'+id+'"]');if(li)li.classList.add("just-done");
   $("#cheer").textContent=CHEERS[Math.floor(Math.random()*CHEERS.length)];
+  document.body.classList.remove("grumpy");clearTimeout(grumbleT);
   mascot.complete();
   document.body.classList.add("celebrate");clearTimeout(cheerT);
   cheerT=setTimeout(()=>document.body.classList.remove("celebrate"),1900);
   if(!matchMedia("(prefers-reduced-motion: reduce)").matches)confetti(r.left+r.width/2,r.top+r.height/2);
   doneSound();
+}
+// ---------- capivara bolada (#8): cliques demais viram reclamação ----------
+const GRUMBLES=["Ô, para de me cutucar!","Tô focando aqui, pô!","Mais um clique e eu tiro o fone.","Capivara também tem limite!","Vai fazer sua tarefa, vai!"];
+// easter egg: a cada 3 reclamações, a proposta de paz
+const PLUS_GRUMBLE="Paga o plano Plus que talvez eu reclame menos.";
+let grumbles=0,grumbleT;
+function grumble(){
+  grumbles++;
+  $("#cheer").textContent=grumbles%3===0?PLUS_GRUMBLE:GRUMBLES[Math.floor(Math.random()*GRUMBLES.length)];
+  document.body.classList.remove("celebrate");clearTimeout(cheerT);
+  document.body.classList.add("grumpy");clearTimeout(grumbleT);
+  grumbleT=setTimeout(()=>document.body.classList.remove("grumpy"),CapiMascot.GRUMPY_TIME);
 }
 function confetti(x,y){
   const cs=getComputedStyle(document.documentElement),cols=[cs.getPropertyValue("--bg-pomo"),cs.getPropertyValue("--bg-short"),cs.getPropertyValue("--bg-long"),"#f2c14e","#e07a9b","#7fb069"].map(c=>c.trim()||"#f2c14e");

@@ -1,16 +1,20 @@
 (function () {
   const assets = Object.freeze(Object.fromEntries(
-    ['default', 'focus', 'break', 'completed', 'radio'].map(state =>
+    ['default', 'focus', 'break', 'completed', 'radio', 'rabugenta'].map(state =>
       [state, 'assets/mascot/capy-' + state + '.png'])
   ));
 
-  function resolve({ running = false, mode = 'pomo', playing = false, completed = false } = {}) {
+  // Cliques seguidos que deixam a capivara bolada (#8): GRUMPY_CLICKS cliques dentro de GRUMPY_WINDOW ms.
+  const GRUMPY_CLICKS = 6, GRUMPY_WINDOW = 2500, GRUMPY_TIME = 3200;
+
+  function resolve({ running = false, mode = 'pomo', playing = false, completed = false, grumpy = false } = {}) {
+    if (grumpy) return 'rabugenta';
     if (completed) return 'completed';
     if (running) return mode === 'pomo' ? 'focus' : 'break';
     return playing ? 'radio' : 'default';
   }
 
-  function create(host, { size = 'md', animated = true, className = '' } = {}) {
+  function create(host, { size = 'md', animated = true, className = '', onGrumpy = null, now = () => Date.now() } = {}) {
     const view = document.createElement('button');
     view.type = 'button';
     view.className = 'mascot mascot--' + (['sm', 'md', 'lg'].includes(size) ? size : 'md');
@@ -21,7 +25,16 @@
     let visible = null;
     let reaction;
     const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let clicks = [];
+    let grumpy = false;
+    let grumpyTimer;
     view.addEventListener('click', () => {
+      // a irritação conta mesmo com movimento reduzido: é só uma troca de pose e uma frase
+      if (!grumpy) {
+        const t = now();
+        clicks = clicks.filter(c => t - c < GRUMPY_WINDOW).concat(t);
+        if (clicks.length >= GRUMPY_CLICKS) { clicks = []; getGrumpy(); }
+      }
       if (!animated || reducedMotion()) return;
       if (reaction) reaction.cancel();
       reaction = view.animate([
@@ -78,9 +91,16 @@
     let completionTimer;
     let context = {};
     let completed = false;
+    function getGrumpy() {
+      grumpy = true;
+      clearTimeout(grumpyTimer);
+      update();
+      if (typeof onGrumpy === 'function') onGrumpy();
+      grumpyTimer = setTimeout(() => { grumpy = false; update(); }, GRUMPY_TIME);
+    }
     function update(next = context) {
       context = next;
-      const state = resolve({ ...context, completed });
+      const state = resolve({ ...context, completed, grumpy });
       if (state !== current) { current = state; show(); }
     }
     show();
@@ -94,5 +114,5 @@
       }
     };
   }
-  window.CapiMascot = Object.freeze({ assets, resolve, create });
+  window.CapiMascot = Object.freeze({ assets, resolve, create, GRUMPY_CLICKS, GRUMPY_WINDOW, GRUMPY_TIME });
 })();

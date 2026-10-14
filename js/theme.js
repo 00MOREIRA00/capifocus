@@ -19,15 +19,12 @@
     const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
     return"#"+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join("");}
   function lum(hex){const c=[1,3,5].map(i=>{const v=parseInt(hex.slice(i,i+2),16)/255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+  // "Sua cor" (cor escolhida à mão): a mesma cor em Pomodoro e nas pausas (#29), com destaque calculado para contraste
   function customTheme(hex){
-    const [h,s,l]=hexToHsl(hex);
-    const gray=s<8;                                   // preto, branco e cinzas: varia só o brilho
-    const dl=l>85?-3:l<15?4:2;                        // pausas ficam um pouco mais claras/escuras
-    const bg=(dh,k)=>gray?hslHex(h,s,l+dl*k):hslHex(h+dh,s,l+(k===1?2:0));
     const light=lum(hex)>.5;
-    const acc=c=>{const [hh,ss,ll]=hexToHsl(c);return light?hslHex(hh,Math.min(ss,60),Math.min(ll,32)):(ll<28?c:hslHex(hh,ss+5,ll-26));};
-    const P=hex,S=bg(-22,1),L=bg(24,2);
-    return{nome:"Personalizada",pomo:[P,acc(P)],short:[S,acc(S)],long:[L,acc(L)]};
+    const [h,s,l]=hexToHsl(hex);
+    const acc=light?hslHex(h,Math.min(s,60),Math.min(l,32)):(l<28?hex:hslHex(h,s+5,l-26));
+    return{nome:"Personalizada",pomo:[hex,acc],short:[hex,acc],long:[hex,acc]};
   }
   // Mesma cor nos três modos: Pomodoro, pausa curta e pausa longa usam a cor do Pomodoro.
   function uniform(t){return{nome:t.nome,pomo:t.pomo,short:t.pomo,long:t.pomo};}

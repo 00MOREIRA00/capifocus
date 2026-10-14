@@ -20,7 +20,7 @@ async function run() {
     const html = await page.text();
     // tudo que a página referencia, mais os módulos importados por js/app.js
     const urls = [...html.matchAll(/(?:src|href)="((?:css|js|assets)\/[^"?]+|manifest\.json)"/g)].map(match => match[1]);
-    for (const state of ['default', 'focus', 'break', 'completed', 'radio']) urls.push(`assets/mascot/capy-${state}.png`);
+    for (const state of ['default', 'focus', 'break', 'completed', 'radio', 'rabugenta']) urls.push(`assets/mascot/capy-${state}.png`);
     const seen = new Set();
     for (let i = 0; i < urls.length; i++) {
       const relative = urls[i];

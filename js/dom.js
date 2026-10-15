@@ -18,4 +18,13 @@ export function checkIcon(){
 }
 
 let toastT;
-export function toast(t){const n=$("#toast");n.textContent=t;n.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>n.classList.remove("show"),3500);}
+export function toast(t,action,duration=3500){
+  const n=$("#toast");n.replaceChildren();n.textContent=t;
+  if(action){
+    const button=el("button",{type:"button",className:"toast-action",textContent:action.label});
+    button.addEventListener("click",()=>{clearTimeout(toastT);n.replaceChildren();n.classList.remove("show");action.run();},{once:true});
+    n.appendChild(button);
+  }
+  n.classList.add("show");clearTimeout(toastT);
+  toastT=setTimeout(()=>{n.classList.remove("show");n.replaceChildren();},duration);
+}

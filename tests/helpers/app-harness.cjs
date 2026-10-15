@@ -57,7 +57,7 @@ module.exports = function createApp(saved = new Map(), options = {}) {
     body: element(), documentElement: element(), activeElement: { tagName: 'BODY' }, hidden: false, hasFocus: () => options.focused !== false,
     addEventListener(event, fn) { (docEvents[event] ||= []).push(fn); }
   };
-  const window = { addEventListener() {} };
+  const window = { addEventListener() {}, confirm: () => options.confirm !== false };
   // Controles de mídia do sistema simulados (Media Session API)
   const mediaSession = { metadata: null, playbackState: 'none', handlers: {}, setActionHandler(name, fn) { this.handlers[name] = fn; } };
   class MediaMetadata { constructor(data) { Object.assign(this, data); } }

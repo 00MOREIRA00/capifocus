@@ -12,6 +12,8 @@ let playing=false;
 const MSG={pomo:"Hora de focar!",short:"Hora de uma pausa!",long:"Pausa longa. Hora de relaxar."};
 let mins=store.get("capi-mins",{pomo:25,short:5,long:15});
 let tasks=store.get("capi-tasks",[]);
+tasks=tasks.map(t=>({...t,name:String(t.name).slice(0,120)}));
+store.set("capi-tasks",tasks);
 let activeId=store.get("capi-active",tasks[0]?tasks[0].id:null);
 let count=store.get("capi-count",1);
 const lightModes={pomo:false,short:false,long:false};   // modo com fundo claro (texto escuro), calculado pelo tema
@@ -155,6 +157,9 @@ document.addEventListener("keydown",e=>{if(e.code==="Space"&&!typingIn(document.
 // tarefas
 function saveTasks(){store.set("capi-tasks",tasks);store.set("capi-active",activeId);renderTasks();render();}
 function renderTasks(){
+  const completed=tasks.filter(t=>t.done).length;
+  $("#clear-done").hidden=!completed;
+  $("#clear-done").textContent="Limpar concluídas ("+completed+")";
   renderTaskList({tasks,activeId,mins,
     onSelect:t=>{activeId=t.id;saveTasks();},
     onToggle:(t,r)=>{t.done=!t.done;saveTasks();if(t.done)celebrate(t.id,r);},
@@ -164,9 +169,28 @@ function renderTasks(){
 }
 $("#add").addEventListener("click",()=>{$("#newtask").hidden=false;$("#add").hidden=true;$("#nt-name").focus();});
 $("#nt-cancel").addEventListener("click",()=>{$("#newtask").hidden=true;$("#add").hidden=false;});
-$("#newtask").addEventListener("submit",e=>{e.preventDefault();const n=$("#nt-name").value.trim();if(!n)return;
+function updateNameRemaining(){
+  const input=$("#nt-name");input.value=input.value.slice(0,120);
+  $("#nt-remaining").textContent=(120-input.value.length)+" caracteres restantes";
+}
+$("#nt-name").addEventListener("input",updateNameRemaining);
+$("#clear-done").addEventListener("click",()=>{
+  const removed=tasks.map((task,index)=>({task,index})).filter(x=>x.task.done);
+  if(!removed.length||!window.confirm("Limpar "+removed.length+" tarefa(s) concluída(s)?"))return;
+  const previousActive=activeId;
+  tasks=tasks.filter(t=>!t.done);
+  const activeRemoved=removed.some(x=>x.task.id===activeId);
+  if(activeRemoved)activeId=tasks[0]?tasks[0].id:null;
+  saveTasks();$("#add").focus();
+  toast("Tarefas concluídas removidas.",{label:"Desfazer",run:()=>{
+    removed.forEach(({task,index})=>tasks.splice(Math.min(index,tasks.length),0,task));
+    if(activeRemoved)activeId=previousActive;
+    saveTasks();$("#clear-done").focus();
+  }},8000);
+});
+$("#newtask").addEventListener("submit",e=>{e.preventDefault();const n=$("#nt-name").value.trim().slice(0,120);if(!n)return;
   const t={id:Date.now(),name:n,est:Math.max(1,+$("#nt-est").value||1),act:0,done:false};tasks.push(t);if(!activeId)activeId=t.id;
-  $("#nt-name").value="";$("#nt-est").value=1;$("#newtask").hidden=true;$("#add").hidden=false;saveTasks();});
+  $("#nt-name").value="";updateNameRemaining();$("#nt-est").value=1;$("#newtask").hidden=true;$("#add").hidden=false;saveTasks();});
 
 // ajustes
 $("#set-pomo").value=mins.pomo;$("#set-short").value=mins.short;$("#set-long").value=mins.long;

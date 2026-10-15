@@ -48,6 +48,8 @@ O projeto é feito em HTML, CSS e JavaScript puros, organizado em módulos ES. N
 - **Ajustes:** duração de cada modo, pausa longa a cada N focos, início automático, tema de cor, alarme e notificação. Os tempos precisam fazer sentido entre si: a pausa curta não pode passar do Pomodoro e a pausa longa precisa ser maior que a curta. Se não fizerem, os ajustes não são salvos e o painel mostra o que corrigir.
 - **Tudo salvo no navegador:** tarefas, ajustes, tema, estatísticas e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
 
+Os nomes das tarefas aceitam até 120 caracteres, com contador no formulário e exibição em até duas linhas. Nomes antigos acima do limite são ajustados ao abrir o app. O botão **Limpar concluídas (N)** pede confirmação e permite **Desfazer** por 8 segundos, preservando as estatísticas de foco.
+
 ### Como o lo-fi funciona
 
 A Capi Rádio não toca nenhum arquivo de áudio nem usa streaming. A música é sintetizada em tempo real com a **Web Audio API**, que vem em todo navegador moderno:

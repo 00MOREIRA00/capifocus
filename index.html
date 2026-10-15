@@ -111,10 +111,11 @@
   </div>
 
   <section>
-    <div class="tasks-head"><h2>Tarefas</h2></div>
+    <div class="tasks-head"><h2>Tarefas</h2><button type="button" class="btn-ghost" id="clear-done" hidden>Limpar concluídas</button></div>
     <ul class="tasks" id="tasks" style="margin-top:16px"></ul>
     <form class="newtask" id="newtask" hidden style="margin-top:8px">
-      <input id="nt-name" type="text" placeholder="No que você vai trabalhar?" autocomplete="off" required>
+      <input id="nt-name" type="text" placeholder="No que você vai trabalhar?" autocomplete="off" maxlength="120" aria-describedby="nt-remaining" required>
+      <small id="nt-remaining" aria-live="polite">120 caracteres restantes</small>
       <label for="nt-est">Pomodoros estimados <input id="nt-est" type="number" min="1" max="20" value="1"></label>
       <div class="frow"><button type="button" class="btn-ghost" id="nt-cancel">Cancelar</button><button type="submit" class="btn-dark">Salvar</button></div>
     </form>

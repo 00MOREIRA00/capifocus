@@ -2,6 +2,62 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const createApp = require('./helpers/app-harness.cjs');
 
+test('#30: limits input, saved names and legacy names to 120 characters', () => {
+  const app = createApp();
+  app.get('#nt-name').value = 'A'.repeat(130); app.get('#nt-name').emit('input');
+  assert.equal(app.get('#nt-name').value.length, 120);
+  assert.equal(app.get('#nt-remaining').textContent, '0 caracteres restantes');
+  app.get('#nt-name').value = 'B'.repeat(200); app.get('#newtask').emit('submit');
+  assert.equal(app.data('capi-tasks')[0].name, 'B'.repeat(120));
+  assert.equal(app.get('#nt-remaining').textContent, '120 caracteres restantes');
+  const saved = new Map([['capi-tasks', JSON.stringify([{id: 1, name: 'C'.repeat(900), done: false, est: 1, act: 0}])]]);
+  const restored = createApp(saved);
+  assert.equal(restored.data('capi-tasks')[0].name.length, 120);
+  assert.equal(restored.get('#msg').textContent.length, 120);
+});
+
+test('#31: confirms cleanup, preserves statistics and undoes without losing later edits', () => {
+  const initial = () => new Map([
+    ['capi-tasks', JSON.stringify([
+      {id: 1, name: 'Concluída', done: true, est: 1, act: 1},
+      {id: 2, name: 'Pendente', done: false, est: 2, act: 0},
+      {id: 3, name: 'Outra concluída', done: true, est: 1, act: 1}])],
+    ['capi-active', '1'], ['capi-count', '9']
+  ]);
+  const cancelled = createApp(initial(), {confirm: false});
+  cancelled.get('#clear-done').click();
+  assert.equal(cancelled.data('capi-tasks').length, 3);
+  const app = createApp(initial());
+  const stats = app.saved.get('capi-stats');
+  assert.equal(app.get('#clear-done').textContent, 'Limpar concluídas (2)');
+  app.get('#clear-done').click();
+  assert.deepEqual(app.data('capi-tasks').map(t => t.id), [2]);
+  assert.equal(app.data('capi-active'), 2);
+  assert.equal(app.get('#clear-done').hidden, true);
+  assert.equal(app.data('capi-count'), 9);
+  assert.equal(app.saved.get('capi-stats'), stats);
+  app.get('#nt-name').value = 'Nova'; app.get('#newtask').emit('submit');
+  app.get('#toast').children[0].click();
+  assert.deepEqual(app.data('capi-tasks').map(t => t.name), ['Concluída', 'Pendente', 'Outra concluída', 'Nova']);
+  assert.equal(app.data('capi-active'), 1);
+  assert.equal(createApp(app.saved).get('#clear-done').hidden, false);
+  app.get('#clear-done').click(); app.advance(8100);
+  assert.equal(app.get('#toast').children.length, 0);
+  assert.deepEqual(createApp(app.saved).data('capi-tasks').map(t => t.name), ['Pendente', 'Nova']);
+});
+
+test('#31: cleaning all tasks leaves no active task and undo restores it', () => {
+  const app = createApp(new Map([
+    ['capi-tasks', JSON.stringify([{id: 1, name: 'Feita', done: true, est: 1, act: 1}])],
+    ['capi-active', '1']
+  ]));
+  app.get('#clear-done').click();
+  assert.deepEqual(app.data('capi-tasks'), []);
+  assert.equal(app.data('capi-active'), null);
+  app.get('#toast').children[0].click();
+  assert.equal(app.data('capi-active'), 1);
+});
+
 test('timer counts elapsed time, pauses, resumes and resets', () => {
   const app = createApp();
   assert.equal(app.get('#time').textContent, '25:00');

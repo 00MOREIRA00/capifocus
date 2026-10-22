@@ -1,15 +1,29 @@
 // Capifocus: módulo principal. Liga o timer, as tarefas, a Capi Rádio, os temas e os ajustes à página.
-// CapiMascot (js/components/mascot.js) e CapiTheme (js/theme.js) são scripts clássicos carregados antes,
-// para o mascote e o tema aparecerem antes deste módulo.
+// CapiMascot (js/components/mascot.js), CapiSeason (js/seasonal.js) e CapiTheme (js/theme.js) são scripts clássicos
+// carregados antes, para o mascote, a temporada e o tema aparecerem antes deste módulo.
 import {$,store,el,toast} from "./dom.js";
-import {TITLE_MODE,fmt,clampLongEvery,clampMinutes,nextStage,remaining,titleFor,restoreState,validateDurations} from "./timer.js";
-import {sanitizeStats,addPomodoro,lastDays,streak} from "./stats.js";
+import {TITLE_MODE,fmt,clampLongEvery,clampMinutes,nextStage,syncLeft,titleFor,restoreState,validateDurations} from "./timer.js";
+import {dayKey,sanitizeStats,addPomodoro,lastDays,streak} from "./stats.js";
 import {renderTaskList,moveItem} from "./tasks.js";
 import {createLofi} from "./lofi.js";
 
 const mascot=CapiMascot.create($(".capy-stage"),{onGrumpy:()=>grumble()});
 let playing=false;
-const MSG={pomo:"Hora de focar!",short:"Hora de uma pausa!",long:"Pausa longa. Hora de relaxar."};
+// textos do app; durante uma temporada (Halloween), os de js/seasonal.js substituem os normais
+const NORMAL_TXT={
+  msg:{pomo:"Hora de focar!",short:"Hora de uma pausa!",long:"Pausa longa. Hora de relaxar."},
+  doing:{pomo:"Concentrada no foco",short:"Curtindo uma pausa",long:"Relaxando na pausa longa"},
+  idle:"Esperando você começar",radio:"Curtindo a Capi Rádio",
+  notify:{pomo:"Fim da pausa. Bora focar?",short:"Fim do foco! Hora de uma pausa curta.",long:"Fim do foco! Hora da pausa longa."},
+  cheers:["Tarefa concluída!","Mandou bem!","Uma a menos!","Capivara aprova!","Isso aí!"],
+  grumbles:["Ô, para de me cutucar!","Tô focando aqui, pô!","Mais um clique e eu tiro o fone.","Capivara também tem limite!","Vai fazer sua tarefa, vai!"],
+  // easter egg: a cada 3 reclamações, a proposta de paz
+  plus:"Paga o plano Plus que talvez eu reclame menos."
+};
+let season=typeof CapiSeason!=="undefined"?CapiSeason.active(new Date()):null;   // temporada ativa ("halloween" ou null); applySeason() atualiza
+const seasonContent=()=>season&&typeof CapiSeason!=="undefined"?CapiSeason.content(season):null;
+const TXT=()=>Object.assign({},NORMAL_TXT,seasonContent()||{});
+const pickOne=a=>a[Math.floor(Math.random()*a.length)];
 let mins=store.get("capi-mins",{pomo:25,short:5,long:15});
 let tasks=store.get("capi-tasks",[]);
 tasks=tasks.map(t=>({...t,name:String(t.name).slice(0,120)}));
@@ -41,11 +55,10 @@ function syncWake(){try{
   }else if(!want&&wakeLock){const l=wakeLock;wakeLock=null;try{l.release().catch(()=>{})}catch(e){}}
 }catch(e){}}
 // notificação do navegador ao fim de cada etapa (#14)
-const NOTIFY_MSG={pomo:"Fim da pausa. Bora focar?",short:"Fim do foco! Hora de uma pausa curta.",long:"Fim do foco! Hora da pausa longa."};
 function notifyEnd(next){try{
   if(!flow.notify||typeof Notification==="undefined"||Notification.permission!=="granted")return;
   if(typeof document!=="undefined"&&!document.hidden&&document.hasFocus&&document.hasFocus())return;   // app na frente: o alarme basta
-  const opts={body:NOTIFY_MSG[next],icon:"assets/icons/icon-192.png",badge:"assets/icons/icon-192.png",tag:"capifocus-ciclo",renotify:true};
+  const opts={body:TXT().notify[next],icon:"assets/icons/icon-192.png",badge:"assets/icons/icon-192.png",tag:"capifocus-ciclo",renotify:true};
   const sw=typeof navigator!=="undefined"&&navigator.serviceWorker;
   // No Android só o service worker pode notificar; no computador ele também é o caminho preferido.
   if(sw&&sw.controller&&sw.ready)return sw.ready.then(r=>r.showNotification("Capifocus",opts)).catch(()=>plainNotify(opts));
@@ -62,7 +75,7 @@ function updateTitle(){
 function render(){
   mascot.update({mode,running,playing});
   $("#time").textContent=fmt(left);
-  $("#progress").style.width=((1-left/total)*100)+"%";
+  $("#progress").style.width=Math.min(100,Math.max(0,(1-left/total)*100))+"%";
   $("#main").textContent=running?"Pausar":"Começar";
   $("#main").classList.toggle("running",running);
   $("#skip").hidden=!(running||left<total);
@@ -74,12 +87,12 @@ function render(){
   B.toggle("on-light",!!lightModes[mode]);
   updateTitle();
   syncWake();
-  const DO={pomo:"Concentrada no foco",short:"Curtindo uma pausa",long:"Relaxando na pausa longa"};
-  $("#doing").textContent=running?DO[mode]:(playing?"Curtindo a Capi Rádio":"Esperando você começar");
+  const T=TXT();
+  $("#doing").textContent=running?T.doing[mode]:(playing?T.radio:T.idle);
   document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-pressed",t.dataset.mode===mode));
   $("#count").textContent="#"+count;
   const a=tasks.find(t=>t.id===activeId);
-  $("#msg").textContent=(mode==="pomo"&&a&&!a.done)?a.name:MSG[mode];
+  $("#msg").textContent=(mode==="pomo"&&a&&!a.done)?a.name:T.msg[mode];
   if(typeof mediaUI==="function")mediaUI();
 }
 function setMode(m,auto){
@@ -101,7 +114,9 @@ function closeConfirm(apply){
 function start(){running=true;endAt=Date.now()+left*1000;clearInterval(tick);tick=setInterval(step,250);saveTimer();render();}
 function stop(){running=false;clearInterval(tick);saveTimer();render();}
 function step(){
-  left=remaining(endAt,Date.now());
+  const s=syncLeft({endAt,now:Date.now(),total,left});
+  left=s.left;
+  if(s.endAt!==endAt){endAt=s.endAt;saveTimer();}   // relógio do sistema voltou: novo fim, mesmo tempo restante
   if(left===0){finish();return}
   render();
 }
@@ -113,6 +128,7 @@ var finish=function(){
     const a=tasks.find(t=>t.id===activeId);if(a){a.act++;saveTasks();}
     count=nx.count;store.set("capi-count",count);
     creditStats(quiet&&endAt?new Date(endAt):new Date());
+    if(!quiet)seasonEgg();
   }
   setMode(nx.mode,true);
   if(loud){
@@ -128,8 +144,46 @@ const ALARMS={
   sino:{rep:1.6,play(t,out){[[880,0],[1318.5,.22],[1760,.44]].forEach(([fq,d])=>bell(t+d,fq,1.6,.5,out));}},
   despertador:{rep:1.1,play(t,out){for(let i=0;i<4;i++){beep(t+i*.14,1046,.09,"square",.18,out);}}},
   marimba:{rep:1.4,play(t,out){[523.25,659.25,783.99,1046.5].forEach((fq,i)=>mar(t+i*.13,fq,out));}},
-  capi:{rep:1.8,play(t,out){[[392,0],[523.25,.16],[659.25,.32],[523.25,.56],[783.99,.72]].forEach(([fq,d])=>mar(t+d,fq,out));}}
+  capi:{rep:1.8,play(t,out){[[392,0],[523.25,.16],[659.25,.32],[523.25,.56],[783.99,.72]].forEach(([fq,d])=>mar(t+d,fq,out));}},
+  // de temporada: só aparecem no Halloween
+  meianoite:{season:"halloween",rep:2.6,play(t,out){[0,1.2].forEach(d=>{bell(t+d,196,2.4,.55,out);bell(t+d+.01,98,2.6,.3,out);});}},
+  uivo:{season:"halloween",rep:4.6,play(t,out){howl(t,out);}}
 };
+// uivo de lobo: tom redondo (não serrilhado) que sobe devagar, segura com vibrato e cai no fim,
+// com ar na voz, eco de floresta e um segundo lobo respondendo ao longe
+function howl(t,out){
+  const echo=ctx.createDelay(1),fb=ctx.createGain(),dark=ctx.createBiquadFilter(),wet=ctx.createGain();
+  echo.delayTime.value=.34;fb.gain.value=.38;dark.type="lowpass";dark.frequency.value=1100;wet.gain.value=.45;
+  echo.connect(dark).connect(fb).connect(echo);dark.connect(wet).connect(out);
+  wolf(t,1,1,out,echo);
+  wolf(t+1.15,.86,.32,out,echo);   // o outro lobo, mais grave e mais longe
+}
+function wolf(t,pitch,lvl,out,echo){
+  const dur=3.2,N=64,curve=new Float32Array(N);
+  for(let i=0;i<N;i++){const x=i/(N-1);
+    // sobe suave até o pico, segura descendo de leve e cai no final
+    const f=x<.25?330+(720-330)*Math.sin(x/.25*Math.PI/2):x<.72?720-(x-.25)/.47*50:670-(670-420)*Math.pow((x-.72)/.28,1.6);
+    curve[i]=f*pitch;}
+  const o=ctx.createOscillator(),o2=ctx.createOscillator(),vib=ctx.createOscillator(),vg=ctx.createGain();
+  o.type="triangle";o2.type="sine";
+  o.frequency.setValueCurveAtTime(curve,t,dur);o2.frequency.setValueCurveAtTime(curve.map(v=>v*2),t,dur);
+  vib.frequency.value=5.2;vg.gain.setValueAtTime(0,t);vg.gain.linearRampToValueAtTime(0,t+.7);vg.gain.linearRampToValueAtTime(9*pitch,t+1.6);
+  vib.connect(vg);vg.connect(o.frequency);vg.connect(o2.frequency);
+  // boca em "uuu": filtro de formante
+  const mouth=ctx.createBiquadFilter();mouth.type="bandpass";mouth.frequency.value=800*pitch;mouth.Q.value=1.1;
+  const soft=ctx.createBiquadFilter();soft.type="lowpass";soft.frequency.value=(lvl<1?1100:1700);
+  const g=ctx.createGain(),g2=ctx.createGain();g2.gain.value=.18;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.32*lvl,t+.45);g.gain.setValueAtTime(.32*lvl,t+dur*.7);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(mouth);o2.connect(g2).connect(mouth);mouth.connect(soft).connect(g);g.connect(out);g.connect(echo);
+  // ar na voz: ruído filtrado acompanhando o uivo
+  const n=ctx.createBufferSource(),nb=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate),d=nb.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  n.buffer=nb;n.loop=true;const air=ctx.createBiquadFilter();air.type="bandpass";air.frequency.value=1400*pitch;air.Q.value=1.5;
+  const ag=ctx.createGain();ag.gain.setValueAtTime(.0001,t);ag.gain.exponentialRampToValueAtTime(.05*lvl,t+.5);ag.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  n.connect(air).connect(ag).connect(out);
+  [o,o2,vib,n].forEach(x=>{x.start(t);x.stop(t+dur+.05);});
+}
+const alarmAllowed=id=>!!ALARMS[id]&&(!ALARMS[id].season||ALARMS[id].season===season);
 function bell(t,fq,dec,peak,out){[[1,1],[2.76,.35],[5.4,.12]].forEach(([r,a])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=fq*r;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak*a,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+dec/r);o.connect(g).connect(out);o.start(t);o.stop(t+dec+.05);});}
 function beep(t,fq,len,type,peak,out){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=fq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+.005);g.gain.setValueAtTime(peak,t+len-.01);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(g).connect(out);o.start(t);o.stop(t+len+.02);}
 function mar(t,fq,out){bell(t,fq,.7,.55,out);const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=fq*4;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.08,t+.003);g.gain.exponentialRampToValueAtTime(.0001,t+.08);o.connect(g).connect(out);o.start(t);o.stop(t+.1);}
@@ -137,7 +191,7 @@ let alarm=store.get("capi-alarm",{sound:"sino",rep:3,vol:80});
 function chime(){
   try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();
     stopAlarm();
-    const A=ALARMS[alarm.sound]||ALARMS.sino,out=ctx.createGain();out.gain.value=alarm.vol/100*1.2;out.connect(ctx.destination);
+    const A=alarmAllowed(alarm.sound)?ALARMS[alarm.sound]:ALARMS.sino,out=ctx.createGain();out.gain.value=alarm.vol/100*1.2;out.connect(ctx.destination);
     const t0=ctx.currentTime+.05;for(let i=0;i<alarm.rep;i++)A.play(t0+i*A.rep,out);
     const total=alarm.rep*A.rep+.6;
     if(typeof Lofi!=="undefined")Lofi.duck(total);
@@ -200,11 +254,10 @@ $("#btn-settings").addEventListener("click",()=>setSettings(!$("#settings-wrap")
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#settings-wrap").classList.contains("open"))setSettings(false);});
 $("#sback").addEventListener("click",()=>setSettings(false));
 // ---------- comemoração ao concluir tarefa ----------
-const CHEERS=["Tarefa concluída!","Mandou bem!","Uma a menos!","Capivara aprova!","Isso aí!"];
 let cheerT;
 function celebrate(id,r){
   const li=document.querySelector('.task[data-id="'+id+'"]');if(li)li.classList.add("just-done");
-  $("#cheer").textContent=CHEERS[Math.floor(Math.random()*CHEERS.length)];
+  $("#cheer").textContent=pickOne(TXT().cheers);
   document.body.classList.remove("grumpy");clearTimeout(grumbleT);
   mascot.complete();
   document.body.classList.add("celebrate");clearTimeout(cheerT);
@@ -213,21 +266,22 @@ function celebrate(id,r){
   doneSound();
 }
 // ---------- capivara bolada (#8): cliques demais viram reclamação ----------
-const GRUMBLES=["Ô, para de me cutucar!","Tô focando aqui, pô!","Mais um clique e eu tiro o fone.","Capivara também tem limite!","Vai fazer sua tarefa, vai!"];
-// easter egg: a cada 3 reclamações, a proposta de paz
-const PLUS_GRUMBLE="Paga o plano Plus que talvez eu reclame menos.";
 let grumbles=0,grumbleT;
 function grumble(){
   grumbles++;
-  $("#cheer").textContent=grumbles%3===0?PLUS_GRUMBLE:GRUMBLES[Math.floor(Math.random()*GRUMBLES.length)];
+  const T=TXT();
+  $("#cheer").textContent=grumbles%3===0?T.plus:pickOne(T.grumbles);
   document.body.classList.remove("celebrate");clearTimeout(cheerT);
   document.body.classList.add("grumpy");clearTimeout(grumbleT);
   grumbleT=setTimeout(()=>document.body.classList.remove("grumpy"),CapiMascot.GRUMPY_TIME);
 }
-function confetti(x,y){
+function confetti(x,y,pieces=26){
+  const candy=(seasonContent()||{}).candy;
   const cs=getComputedStyle(document.documentElement),cols=[cs.getPropertyValue("--bg-pomo"),cs.getPropertyValue("--bg-short"),cs.getPropertyValue("--bg-long"),"#f2c14e","#e07a9b","#7fb069"].map(c=>c.trim()||"#f2c14e");
-  for(let i=0;i<26;i++){const d=document.createElement("span");d.className="confetti";d.style.left=x+"px";d.style.top=y+"px";d.style.background=cols[i%cols.length];
-    if(i%3===0)d.style.borderRadius="50%";document.body.appendChild(d);
+  for(let i=0;i<pieces;i++){const d=document.createElement("span");d.className="confetti";d.style.left=x+"px";d.style.top=y+"px";
+    if(candy){d.classList.add("candy");d.textContent=candy[i%candy.length];}   // na temporada, doces e morcegos
+    else{d.style.background=cols[i%cols.length];if(i%3===0)d.style.borderRadius="50%";}
+    document.body.appendChild(d);
     const a=Math.random()*Math.PI*2,v=50+Math.random()*90,dx=Math.cos(a)*v,dy=Math.sin(a)*v-60;
     d.animate([{transform:"translate(-50%,-50%) rotate(0)",opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*540}deg)`,opacity:1,offset:.6},{transform:`translate(${dx*1.2}px,${dy+90}px) rotate(${Math.random()*720}deg)`,opacity:0}],{duration:900+Math.random()*500,easing:"cubic-bezier(.2,.7,.3,1)"}).onfinish=()=>d.remove();}
 }
@@ -273,14 +327,16 @@ function saveSnd(){store.set("capi-snd2",snd);playerUI();}
 const MS=(typeof navigator!=="undefined"&&navigator.mediaSession)?navigator.mediaSession:null;
 const MODE_LABEL={pomo:"Pomodoro",short:"Pausa curta",long:"Pausa longa"};
 let mediaKey="";
+// capa na notificação e na tela de bloqueio: a capivara da rádio (fantasiada na temporada)
+const radioArt=()=>{const p=(seasonContent()||{}).poses||{};return p.radio?{src:p.radio,sizes:"640x640",type:"image/png"}:{src:"assets/mascot/capy-radio.png",sizes:"1254x1254",type:"image/png"};};
 function mediaUI(){try{mediaSync()}catch(e){}}   // render() pode rodar antes da rádio existir
 function mediaSync(){
   if(!MS)return;
-  const S=Lofi.ST[Lofi.station],album=MODE_LABEL[mode]+" · "+(running?"timer rodando":"timer parado"),key=S.nome+"|"+album+"|"+playing;
+  const S=Lofi.ST[Lofi.station],album=MODE_LABEL[mode]+" · "+(running?"timer rodando":"timer parado"),key=S.nome+"|"+album+"|"+playing+"|"+season;
   if(key===mediaKey)return;mediaKey=key;
   try{
     if(typeof MediaMetadata!=="undefined")MS.metadata=new MediaMetadata({title:S.nome,artist:"Capi Rádio · Capifocus",album,
-      artwork:[{src:"assets/mascot/capy-radio.png",sizes:"1254x1254",type:"image/png"}]});
+      artwork:[radioArt()]});
     MS.playbackState=playing?"playing":"paused";
   }catch(e){}
 }
@@ -305,8 +361,9 @@ $("#main").addEventListener("click",()=>{
 });
 $("#reset").addEventListener("click",()=>{if(playing&&!snd.breaks)setPlaying(false);});
 const _finish=finish;finish=function(){_finish();if(playing&&!allowed(mode))setPlaying(false);};
-const ST_IDS=Object.keys(Lofi.ST);
-function tune(dir){const i=(ST_IDS.indexOf(Lofi.station)+dir+ST_IDS.length)%ST_IDS.length;snd.station=ST_IDS[i];Lofi.setStation(snd.station);
+// estações disponíveis: as de temporada (ex.: Transilvânia) só durante a temporada
+const stationIds=()=>Object.keys(Lofi.ST).filter(id=>!Lofi.ST[id].season||Lofi.ST[id].season===season);
+function tune(dir){const ids=stationIds(),i=(ids.indexOf(Lofi.station)+dir+ids.length)%ids.length;snd.station=ids[i];Lofi.setStation(snd.station);
   const n=$("#st-name");n.classList.remove("swap");void n.offsetWidth;n.classList.add("swap");saveSnd();}
 $("#st-prev").addEventListener("click",()=>tune(-1));$("#st-next").addEventListener("click",()=>tune(1));
 playerUI();
@@ -317,16 +374,18 @@ $("#al-test").addEventListener("click",()=>{readAlarm();const r=alarm.rep;alarm.
 // ---------- temas de cor ----------
 const {THEMES,lum,resolve:resolveTheme,uniform}=CapiTheme;
 function validHex(v,fallback="#a28bd4"){return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)?v.toLowerCase():fallback;}
-let theme=store.get("capi-theme",{id:"lavanda",custom:"#a28bd4"});
-if(!theme||typeof theme!=="object")theme={id:"lavanda",custom:"#a28bd4"};
-theme={id:(theme.id==="custom"||Object.prototype.hasOwnProperty.call(THEMES,theme.id))?theme.id:"lavanda",custom:validHex(theme.custom),same:theme.same===true};
+// id "auto": a pessoa nunca escolheu um tema; usa o padrão (Abóbora no Halloween, Lavanda no resto do ano)
+let theme=store.get("capi-theme",null);
+if(!theme||typeof theme!=="object")theme={id:"auto",custom:"#a28bd4"};
+theme={id:(theme.id==="custom"||Object.prototype.hasOwnProperty.call(THEMES,theme.id))?theme.id:"auto",custom:validHex(theme.custom),same:theme.same===true};
+const themeId=()=>theme.id==="auto"?CapiTheme.defaultId(season):theme.id;
 function applyTheme(){
-  const t=resolveTheme(theme);
+  const t=resolveTheme(theme,season);
   const r=document.documentElement.style;
   ["pomo","short","long"].forEach(m=>{r.setProperty("--bg-"+m,t[m][0]);r.setProperty("--acc-"+m,t[m][1]);lightModes[m]=lum(t[m][0])>.5;});
   if(typeof render==="function")render();
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute("content",t.pomo[0]);
-  document.querySelectorAll(".theme").forEach(b=>b.setAttribute("aria-pressed",b.dataset.theme===theme.id));
+  [...$("#themes").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.theme===themeId()));
 }
 function renderThemes(){
   const box=$("#themes");box.replaceChildren();
@@ -336,6 +395,7 @@ function renderThemes(){
   sw.appendChild(input);c.append(sw,"Sua cor");box.appendChild(c);
   input.addEventListener("input",e=>{const v=validHex(e.target.value,null);if(!v)return;theme={id:"custom",custom:v,same:theme.same};store.set("capi-theme",theme);applyTheme();});
   Object.entries(THEMES).forEach(([id,t])=>{
+    if(t.season&&t.season!==season&&theme.id!==id)return;   // tema de temporada fora da data (a não ser que seja o escolhido)
     const b=el("button",{type:"button",className:"theme"});b.dataset.theme=id;
     const swatch=el("span",{className:"sw"});const v=theme.same?uniform(t):t;swatch.style.background=v.pomo[0]===v.short[0]&&v.pomo[0]===v.long[0]?v.pomo[0]:"conic-gradient("+v.pomo[0]+" 0 33%,"+v.short[0]+" 0 66%,"+v.long[0]+" 0)";
     b.append(swatch,t.nome);
@@ -414,6 +474,84 @@ function renderStats(){
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)renderStats();});   // vira o dia com o app aberto
 renderStats();
+// ---------- temporadas: Halloween (specs/halloween.md) ----------
+// Liga e desliga tudo o que é de temporada: classe no <html>, tema padrão, rádio, alarmes,
+// fantasia da capivara, favicon e decoração. Roda ao abrir, a cada minuto e ao voltar para a aba.
+const calm=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+const FAVICON={32:"assets/icons/favicon-32.png",192:"assets/icons/favicon-192.png"};
+let decoBox=null,batBox=null,batT=null,lastInSeason=null;
+function applySeason(){
+  if(typeof CapiSeason==="undefined")return;
+  const now=new Date(),inS=CapiSeason.inSeason(now),next=CapiSeason.active(now);
+  lastInSeason=inS;
+  // a opção só aparece dentro da data
+  $("#season-row").hidden=!inS;
+  if(inS){$("#season-label").textContent="Decoração de "+CapiSeason.SEASONS[inS].nome;$("#season-on").checked=!!next;}
+  const changed=next!==season;season=next;
+  const R=document.documentElement.classList;
+  Object.keys(CapiSeason.SEASONS).forEach(id=>R.toggle("season-"+id,id===season));
+  // estação e alarme de temporada voltam para os normais fora dela
+  const S=Lofi.ST[Lofi.station];
+  if(S&&S.season&&S.season!==season){snd.station="classico";Lofi.setStation("classico");store.set("capi-snd2",snd);}
+  document.querySelectorAll("#al-sound option[data-season]").forEach(o=>{const off=o.dataset.season!==season;o.hidden=off;o.disabled=off;});
+  if(!alarmAllowed(alarm.sound)){alarm.sound="sino";store.set("capi-alarm",alarm);}
+  $("#al-sound").value=alarm.sound;
+  const c=seasonContent()||{};
+  mascot.setSkin(c.poses||{});
+  setFavicon(c.favicon);
+  decoration(!!season);
+  if(changed){renderThemes();applyTheme();}
+  playerUI();render();
+}
+function checkSeason(){if(typeof CapiSeason==="undefined")return;const now=new Date();
+  if(CapiSeason.inSeason(now)!==lastInSeason||CapiSeason.active(now)!==season)applySeason();}
+function setFavicon(f){
+  [32,192].forEach(n=>{const l=document.querySelector('link[rel="icon"][sizes="'+n+"x"+n+'"]');if(l)l.setAttribute("href",(f&&f[n])||FAVICON[n]);});
+  const logo=document.querySelector(".logo img");if(logo)logo.setAttribute("src",(f&&f[192])||FAVICON[192]);   // rostinho do cabeçalho
+}
+// teias nos cantos (atrás do conteúdo) e morcegos de vez em quando (por cima, sem bloquear cliques)
+function decoration(on){
+  clearTimeout(batT);batT=null;
+  if(!on){if(decoBox){decoBox.remove();decoBox=null;}if(batBox){batBox.remove();batBox=null;}return;}
+  if(!decoBox){
+    decoBox=el("div",{className:"season-deco"},{"aria-hidden":"true"});
+    decoBox.append(el("span",{className:"web web-tl"}),el("span",{className:"web web-br"}));
+    batBox=el("div",{className:"season-bats"},{"aria-hidden":"true"});
+    document.body.append(decoBox,batBox);
+  }
+  if(!calm())batT=setTimeout(flyBat,2500);   // movimento reduzido: só as teias
+}
+function flyBat(){
+  if(!batBox)return;
+  if(!document.hidden){   // aba em segundo plano: não gasta bateria com morcego
+    const fly=el("span",{className:"bat-fly"});fly.appendChild(el("span",{className:"bat"}));batBox.appendChild(fly);
+    const W=innerWidth,H=innerHeight,ltr=Math.random()<.5,s=.6+Math.random()*.6;
+    const y0=H*(.1+Math.random()*.5),y1=y0+(Math.random()-.5)*H*.3,x0=ltr?-70:W+70,x1=ltr?W+70:-70;
+    fly.animate([{transform:`translate(${x0}px,${y0}px) scale(${s})`},{transform:`translate(${(x0+x1)/2}px,${(y0+y1)/2-50}px) scale(${s})`},{transform:`translate(${x1}px,${y1}px) scale(${s})`}],
+      {duration:7000+Math.random()*4000,easing:"ease-in-out"}).onfinish=()=>fly.remove();
+  }
+  batT=setTimeout(flyBat,9000+Math.random()*12000);
+}
+// easter egg: no dia 31, ao completar 3 pomodoros, uma vez por dia
+function seasonEgg(){
+  const c=seasonContent();if(!c||!c.egg)return;
+  const now=new Date(),e=c.egg;if(now.getMonth()+1!==e.month||now.getDate()!==e.day)return;
+  const key=dayKey(now),p=CapiSeason.readPrefs();
+  if(p.egg===key||((stats.days||{})[key]||0)<e.count)return;
+  p.egg=key;store.set("capi-seasonal",p);
+  $("#cheer").textContent=e.text;
+  document.body.classList.remove("grumpy");clearTimeout(grumbleT);
+  mascot.complete();document.body.classList.add("celebrate");clearTimeout(cheerT);
+  cheerT=setTimeout(()=>document.body.classList.remove("celebrate"),3200);
+  if(!calm()){const r=document.querySelector(".mascot").getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height*.3,48);}
+}
+$("#season-on").addEventListener("change",()=>{
+  const id=CapiSeason.inSeason(new Date());if(!id)return;
+  const p=CapiSeason.readPrefs();p[id]=!!$("#season-on").checked;store.set("capi-seasonal",p);applySeason();
+});
+applySeason();
+setInterval(checkSeason,60000);   // vira a data com o app aberto
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkSeason();});
 // ---------- app instalável e offline (#19) ----------
 if(typeof navigator!=="undefined"&&navigator.serviceWorker&&typeof location!=="undefined"&&/^https?:$/.test(location.protocol)){
   window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});

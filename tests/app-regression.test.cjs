@@ -446,3 +446,83 @@ test('#8: capivara bolada mostra uma frase e, a cada três reclamações, a do p
   app.advance(3200);
   assert.equal(app.document.body.classList.contains('grumpy'), false, 'balão some sozinho');
 });
+
+test('relógio do sistema voltando no meio do foco não passa de 25:00', () => {
+  const app = createApp(new Map(), { now: Date.UTC(2026, 9, 19, 15) });
+  app.get('#main').click(); app.advance(5 * 60 * 1000);
+  assert.equal(app.get('#time').textContent, '20:00');
+  app.setClock(-2.5 * 60 * 60 * 1000); app.advance(250);   // relógio volta 2h30
+  assert.equal(app.get('#time').textContent, '20:00', 'tempo não salta para 170 minutos');
+  app.advance(60 * 1000);
+  assert.equal(app.get('#time').textContent, '19:00', 'continua contando normalmente');
+  assert.ok(app.data('capi-timer').endAt - app.now() <= 25 * 60 * 1000, 'fim salvo corrigido');
+  const restored = createApp(app.saved, { now: app.now() }); restored.advance(250);
+  assert.equal(restored.get('#time').textContent, '19:00', 'recarregar mantém o tempo certo');
+});
+
+// ---------- temporada de Halloween (specs/halloween.md) ----------
+const HALLOWEEN = Date.UTC(2026, 9, 28, 15), NOVEMBER = Date.UTC(2026, 10, 10, 15);
+
+test('Halloween: textos, tema Abóbora, estação e alarmes de temporada', () => {
+  const app = createApp(new Map(), { now: HALLOWEEN });
+  assert.equal(app.document.documentElement.classList.contains('season-halloween'), true);
+  assert.equal(app.get('#season-row').hidden, false);
+  assert.equal(app.get('#season-on').checked, true);
+  assert.equal(app.get('#msg').textContent, 'Hora de enfeitiçar o foco!');
+  assert.equal(app.get('#doing').textContent, 'Esperando a meia-noite');
+  assert.equal(app.skin().focus, 'assets/mascot/halloween/capy-focus.png', 'capivara fantasiada de vampiro');
+  const pressed = app.get('#themes').children.find(b => String(b.attributes['aria-pressed']) === 'true');
+  assert.equal(pressed.dataset.theme, 'abobora', 'quem nunca escolheu tema vê a Abóbora');
+  const stations = [];
+  for (let i = 0; i < 6; i++) { app.get('#st-next').click(); stations.push(app.get('#st-name').textContent); }
+  assert.ok(stations.includes('Transilvânia'));
+  app.grumpy(); app.grumpy(); app.grumpy();
+  assert.equal(app.get('#cheer').textContent, 'Paga o plano Plus que eu tiro a maldição.');
+});
+
+test('Halloween: desligar nos ajustes volta tudo ao normal e fica salvo', () => {
+  const app = createApp(new Map(), { now: HALLOWEEN });
+  while (app.get('#st-name').textContent !== 'Transilvânia') app.get('#st-next').click();
+  app.get('#season-on').checked = false; app.get('#season-on').emit('change');
+  assert.equal(app.document.documentElement.classList.contains('season-halloween'), false);
+  assert.deepEqual(app.data('capi-seasonal'), { halloween: false });
+  assert.equal(app.get('#msg').textContent, 'Hora de focar!');
+  assert.deepEqual({ ...app.skin() }, {}, 'capivara volta ao normal');
+  assert.equal(app.get('#st-name').textContent, 'Lo-fi clássico', 'estação de temporada volta para a clássica');
+  assert.equal(app.get('#season-row').hidden, false, 'opção continua para religar');
+  const again = createApp(app.saved, { now: HALLOWEEN });
+  assert.equal(again.document.documentElement.classList.contains('season-halloween'), false);
+  assert.equal(again.get('#season-on').checked, false);
+});
+
+test('fora da data não há nada de Halloween, nem estação ou tema salvos', () => {
+  const saved = new Map([['capi-snd2', JSON.stringify({ station: 'transilvania' })], ['capi-alarm', JSON.stringify({ sound: 'uivo', rep: 2, vol: 70 })]]);
+  const app = createApp(saved, { now: NOVEMBER });
+  assert.equal(app.document.documentElement.classList.contains('season-halloween'), false);
+  assert.equal(app.get('#season-row').hidden, true);
+  assert.equal(app.get('#msg').textContent, 'Hora de focar!');
+  assert.equal(app.get('#st-name').textContent, 'Lo-fi clássico');
+  assert.equal(app.data('capi-alarm').sound, 'sino', 'alarme de temporada volta para o sininho');
+  assert.ok(!app.get('#themes').children.some(b => b.dataset.theme === 'abobora'), 'Abóbora some da lista');
+  const pressed = app.get('#themes').children.find(b => String(b.attributes['aria-pressed']) === 'true');
+  assert.equal(pressed.dataset.theme, 'lavanda');
+});
+
+test('Halloween: tema escolhido pela pessoa não muda', () => {
+  const app = createApp(new Map([['capi-theme', JSON.stringify({ id: 'menta' })]]), { now: HALLOWEEN });
+  const pressed = app.get('#themes').children.find(b => String(b.attributes['aria-pressed']) === 'true');
+  assert.equal(pressed.dataset.theme, 'menta');
+});
+
+test('dia 31: "Doces ou travessuras?" no terceiro pomodoro, uma vez só', () => {
+  const app = createApp(new Map(), { now: Date.UTC(2026, 9, 31, 13) });
+  const pomodoro = () => { app.tabs[0].click(); app.get('#main').click(); app.advance(25 * 60 * 1000); };
+  pomodoro(); pomodoro();
+  assert.notEqual(app.get('#cheer').textContent, 'Doces ou travessuras?');
+  pomodoro();
+  assert.equal(app.get('#cheer').textContent, 'Doces ou travessuras?');
+  assert.equal(app.data('capi-seasonal').egg, '2026-10-31');
+  app.get('#cheer').textContent = '';
+  pomodoro();
+  assert.equal(app.get('#cheer').textContent, '', 'não repete no mesmo dia');
+});

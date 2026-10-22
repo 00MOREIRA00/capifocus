@@ -24,6 +24,15 @@ export function nextStage({mode,completed,count,longEvery}){
 // Segundos restantes até endAt (ms).
 export function remaining(endAt,now){return Math.max(0,Math.round((endAt-now)/1000));}
 
+// Tempo restante a cada tique, à prova de relógio do sistema que volta (ajuste automático de hora,
+// sincronização, volta da suspensão). O restante nunca sobe nem passa da duração da etapa:
+// se o relógio voltou, mantém o tempo atual e recalcula o fim a partir de agora.
+export function syncLeft({endAt,now,total,left}){
+  const rem=remaining(endAt,now);
+  if(rem>left||rem>total){const l=Math.min(left,total);return{left:l,endAt:now+l*1000};}
+  return{left:rem,endAt};
+}
+
 // Título da aba: tempo e modo enquanto há uma etapa em andamento.
 export function titleFor({running,left,total,mode}){
   return (running||left<total)?(running?"":"⏸ ")+fmt(left)+" · "+TITLE_MODE[mode]+" | Capifocus":"Capifocus";
@@ -39,7 +48,9 @@ export function restoreState(saved,mins,now){
   if(!saved.running&&left===total){const t=mins[mode]*60;return{mode,total:t,left:t,running:false,endAt:0,expired:false};}
   if(saved.running&&+saved.endAt>0){
     const rem=remaining(+saved.endAt,now);
-    if(rem>0)return{mode,total,left:Math.min(rem,total),running:true,endAt:+saved.endAt,expired:false};
+    // relógio voltou desde que salvou: retoma do tempo salvo, com um novo fim
+    if(rem>left)return{mode,total,left,running:true,endAt:now+left*1000,expired:false};
+    if(rem>0)return{mode,total,left:rem,running:true,endAt:+saved.endAt,expired:false};
     return{mode,total,left:0,running:false,endAt:+saved.endAt,expired:true};
   }
   return{mode,total,left,running:false,endAt:0,expired:false};

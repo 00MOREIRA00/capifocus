@@ -1,8 +1,9 @@
 (function () {
-  const assets = Object.freeze(Object.fromEntries(
+  // A pausa longa usa a mesma imagem da curta, mas tem pose própria para fantasias de temporada.
+  const assets = Object.freeze(Object.assign(Object.fromEntries(
     ['default', 'focus', 'break', 'completed', 'radio', 'rabugenta'].map(state =>
       [state, 'assets/mascot/capy-' + state + '.png'])
-  ));
+  ), { long: 'assets/mascot/capy-break.png' }));
 
   // Cliques seguidos que deixam a capivara bolada (#8): GRUMPY_CLICKS cliques dentro de GRUMPY_WINDOW ms.
   const GRUMPY_CLICKS = 6, GRUMPY_WINDOW = 2500, GRUMPY_TIME = 3200;
@@ -10,7 +11,7 @@
   function resolve({ running = false, mode = 'pomo', playing = false, completed = false, grumpy = false } = {}) {
     if (grumpy) return 'rabugenta';
     if (completed) return 'completed';
-    if (running) return mode === 'pomo' ? 'focus' : 'break';
+    if (running) return mode === 'pomo' ? 'focus' : mode === 'long' ? 'long' : 'break';
     return playing ? 'radio' : 'default';
   }
 
@@ -86,8 +87,19 @@
         img.dataset.failed = 'true';
         show();
       };
+      img.dataset.src = src;
       img.src = src;
     });
+    // Fantasia de temporada: troca só as poses informadas; as outras voltam para a imagem normal.
+    function setSkin(poses = {}) {
+      Object.entries(images).forEach(([state, img]) => {
+        const src = (poses && poses[state]) || assets[state];
+        if (img.dataset.src === src) return;
+        img.dataset.src = src;
+        img.dataset.ready = 'false';
+        img.src = src;
+      });
+    }
     let completionTimer;
     let context = {};
     let completed = false;
@@ -106,6 +118,7 @@
     show();
     return {
       update,
+      setSkin,
       complete() {
         completed = true;
         clearTimeout(completionTimer);

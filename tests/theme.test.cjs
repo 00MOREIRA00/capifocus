@@ -37,7 +37,22 @@ assert.equal(custom['--bg-short'], '#2a7a5b', '"Sua cor" já usa a mesma cor nas
 assert.equal(custom['--bg-long'], '#2a7a5b'); assert.equal(custom['--acc-long'], custom['--acc-pomo']);
 const sameCustom = boot(JSON.stringify({ id: 'custom', custom: '#2a7a5b', same: true })).properties;
 assert.equal(sameCustom['--bg-long'], '#2a7a5b');
+// Halloween: quem nunca escolheu tema vê a Abóbora; quem escolheu continua com o seu
+function bootSeason(value, season) {
+  const properties = {};
+  const sandbox = { window: { CapiSeason: { active: () => season, content: id => id === 'halloween' ? { theme: 'abobora' } : null } },
+    localStorage: { getItem() { return value; } },
+    document: { documentElement: { style: { setProperty(key, val) { properties[key] = val; } } }, querySelector: () => null } };
+  vm.runInNewContext(source, sandbox);
+  return properties;
+}
+assert.equal(bootSeason(null, 'halloween')['--bg-pomo'], '#d9692b');
+assert.equal(bootSeason(JSON.stringify({ id: 'auto' }), 'halloween')['--bg-short'], '#6a4b9c');
+assert.equal(bootSeason(JSON.stringify({ id: 'menta' }), 'halloween')['--bg-pomo'], '#5fb3a0', 'tema escolhido não muda');
+assert.equal(bootSeason(null, null)['--bg-pomo'], '#a28bd4', 'fora da temporada, Lavanda');
+assert.equal(bootSeason(JSON.stringify({ id: 'abobora' }), null)['--bg-pomo'], '#d9692b', 'quem escolheu a Abóbora continua com ela');
 const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+assert(html.indexOf('<script src="js/seasonal.js"></script>') < html.indexOf('<script src="js/theme.js"></script>'), 'temporada antes do tema');
 assert(html.indexOf('<script src="js/theme.js"></script>') < html.indexOf('<body>'));
 assert(html.indexOf('<script src="js/theme.js"></script>') < html.indexOf('href="css/app.css"'));
 console.log('OK: saved theme before body, custom colors, defaults and unavailable storage');

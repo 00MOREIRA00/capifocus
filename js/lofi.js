@@ -21,6 +21,25 @@ export function createLofi(getVolume){
   function pump(t){if(!pumpG)return;pumpG.gain.cancelScheduledValues(t);pumpG.gain.setValueAtTime(.4,t);pumpG.gain.linearRampToValueAtTime(1,t+.28);}
   function bell(t,m,v){tone(t,m,"sine",v,.004,1.2,0);tone(t,m+19,"sine",v*.25,.004,.5,0);}
   function pluck(t,m,v){tone(t,m,"triangle",v,.004,.45,0);tone(t,m+12,"sine",v*.35,.004,.25,0);}
+  // sino de igreja ao longe: grave, com parciais "desafinadas" e decaimento longo
+  function churchBell(t,m,v){[[0,1,3.2],[12,.45,2.2],[15,.28,1.8],[19,.2,1.4],[24,.12,1]].forEach(([d,a,len])=>tone(t,m+d,"sine",v*a,.006,len,0,dry,true));}
+  // cravo: corda beliscada, brilhante no ataque e escurecendo rápido
+  function harpsi(t,m,v){const fl=c.createBiquadFilter();fl.type="lowpass";fl.Q.value=2;fl.frequency.setValueAtTime(3400,t);fl.frequency.exponentialRampToValueAtTime(700,t+.45);
+    const g=c.createGain();env(g,t,v,.004,.7);fl.connect(g).connect(dry);
+    [["sawtooth",1,0],["square",2,.35],["sawtooth",1,4]].forEach(([type,mul,amp],j)=>{const o=c.createOscillator(),og=c.createGain();o.type=type;o.frequency.value=f(m)*mul;o.detune.value=j===2?6:0;og.gain.value=amp||1;o.connect(og).connect(fl);o.start(t);o.stop(t+.75);});}
+  // violino: serra filtrada, arco entrando devagar e vibrato que aparece depois do ataque
+  function violin(t,m,len,v){const o=c.createOscillator(),fl=c.createBiquadFilter(),g=c.createGain(),vb=c.createOscillator(),vg=c.createGain();
+    o.type="sawtooth";o.frequency.value=f(m);fl.type="lowpass";fl.frequency.value=1800;fl.Q.value=1;
+    vb.frequency.value=5.6;vg.gain.setValueAtTime(0,t);vg.gain.linearRampToValueAtTime(f(m)*.012,t+Math.min(.35,len*.5));vb.connect(vg).connect(o.frequency);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+Math.min(.3,len*.35));g.gain.setValueAtTime(v,t+len*.7);g.gain.exponentialRampToValueAtTime(.0001,t+len);
+    o.connect(fl).connect(g).connect(dry);o.start(t);vb.start(t);o.stop(t+len+.05);vb.stop(t+len+.05);}
+  // órgão de igreja: fundamental, oitava e quinta, entrando devagar
+  function organ(t,notes,len,lvl){notes.forEach(m=>{tone(t,m,"sine",.03*lvl,.35,len,0,dry,true);tone(t,m+12,"sine",.018*lvl,.35,len,0,dry,true);tone(t,m+19,"sine",.008*lvl,.35,len*.8,0,dry,true);});}
+  // vento: ruído filtrado com o filtro passeando, como uma rajada que vem e vai
+  function wind(t,len,v){const s=c.createBufferSource();s.buffer=noise;s.loop=true;const bp=c.createBiquadFilter();bp.type="bandpass";bp.Q.value=7;
+    bp.frequency.setValueAtTime(380,t);bp.frequency.linearRampToValueAtTime(900+Math.random()*500,t+len*.45);bp.frequency.linearRampToValueAtTime(420,t+len);
+    const g=c.createGain();g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+len*.4);g.gain.linearRampToValueAtTime(.0001,t+len);
+    s.connect(bp).connect(g).connect(music);s.start(t,Math.random());s.stop(t+len+.05);}
   const snare=t=>nz(t,"bandpass",1600,.24,.18), rim=t=>nz(t,"bandpass",3300,.18,.035), brush=t=>nz(t,"bandpass",2600,.09,.32);
   // ----- estações -----
   const ST={
@@ -108,6 +127,35 @@ export function createLofi(getVolume){
         if(i===0)tone(t,r-12,"sine",.38,.05,this.spb*3.6,0,music);
         if(i%4===0&&Math.random()<.1)tone(t,pick([64,67,69,71,72,76]),"sine",.04,.08,this.spb*2.2);
       }},
+    // estação de temporada: só aparece na rádio durante o Halloween.
+    // Valsa gótica de castelo na Transilvânia, lenta e calma, em compasso de 3 (12 semicolcheias):
+    // cravo macio no "um-dois-três", órgão por baixo, violino cigano na escala menor húngara,
+    // coro grave e, bem ao fundo, vento e o sino da meia-noite.
+    transilvania:{nome:"Transilvânia",season:"halloween",bpm:66,steps:12,swing:0,cut:2800,wobble:180,wet:.58,
+      progs:[{ch:[[62,65,69],[55,58,62],[57,61,64,67],[62,65,69]],bs:[38,43,45,38]},    // Dm, Gm, A7, Dm
+             {ch:[[62,65,69],[58,62,65],[55,58,62],[57,61,64,67]],bs:[38,46,43,45]},    // Dm, Bb, Gm, A7
+             {ch:[[62,65,69],[63,67,70],[57,61,64,67],[62,65,69]],bs:[38,39,45,38]}],   // Dm, Eb, A7, Dm
+      // ré menor húngara: ré, mi, fá, sol sustenido, lá, si bemol, dó sustenido (as segundas aumentadas dão o sotaque)
+      gypsy:[62,64,65,68,69,70,73,74,76,77],
+      last:69,
+      play(i,t,ch,r){
+        // valsa: baixo macio no um, cravo leve no dois e no três
+        if(i===0){harpsi(t,r-12,.06);tone(t,r-12,"sine",.2,.03,this.spb*2.8,0,music);}
+        if(i===4||(i===8&&Math.random()<.7))ch.forEach((m,j)=>harpsi(t+j*.012,m,.026));
+        // órgão grave segurando o acorde
+        if(i===0)organ(t,ch.map(m=>m-12),this.spb*3.1,.9);
+        // arpejo do cravo descendo devagar no fim da frase
+        if(bar===3&&i%2===0&&Math.random()<.7){const dn=ch.concat(ch.map(m=>m+12)).reverse();harpsi(t,dn[(i/2)%dn.length],.022);}
+        // violino: frases longas na escala húngara, andando por graus perto da nota anterior
+        if((i===0||(i===6&&Math.random()<.45))&&bar!==3&&Math.random()<.7){
+          const sc=this.gypsy,k=sc.indexOf(this.last),nk=Math.max(0,Math.min(sc.length-1,(k<0?4:k)+pick([-1,-1,1,1,2,-2])));
+          this.last=sc[nk];violin(t,this.last,i===0?this.spb*2.7:this.spb*1.4,.03);}
+        // coro grave "aah" no começo de cada volta
+        if(i===0&&bar===0)vox(t,ch[0]-12,this.spb*3.2,"a");
+        // bem ao fundo: vento e, de vez em quando, o sino da meia-noite
+        if(i===0&&bar%2===0)wind(t,this.spb*6.5,.03);
+        if(i===0&&bar===0&&Math.random()<.3)churchBell(t+this.spb,pick([38,43]),.045);
+      }},
     chip:{nome:"8-bit",bpm:118,swing:0,cut:6500,wobble:0,wet:.06,
       progs:[{ch:[[60,64,67],[57,60,64],[53,57,60],[55,59,62]],bs:[36,33,29,31]},
              {ch:[[53,57,60],[55,59,62],[52,55,59],[57,60,64]],bs:[29,31,28,33]}],
@@ -168,7 +216,7 @@ export function createLofi(getVolume){
     if(next<c.currentTime-.05){next=c.currentTime+.05;step=0;}   // ficou para trás: recomeça o compasso em vez de despejar notas atrasadas
     while(next<c.currentTime+ahead()){const P=S.progs[prog%S.progs.length];
       S.play(step,next+((step%4===2)?S.s16*S.swing:0),P.ch[bar],P.bs[bar]);
-      next+=S.s16;step=(step+1)%16;
+      next+=S.s16;step=(step+1)%(S.steps||16);
       if(step===0){bar=(bar+1)%4;if(bar===0){if(Math.random()<.5)prog=Math.floor(Math.random()*S.progs.length);if(S.onLoop)S.onLoop();}}}}
   const vol=()=>getVolume();
   return{

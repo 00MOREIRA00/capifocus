@@ -68,16 +68,18 @@ module.exports = function createApp(saved = new Map(), options = {}) {
   class Notification { constructor(title, opts) { notifications.push({ title, ...opts }); } close() {} }
   Notification.permission = options.notificationPermission || 'default';
   Notification.requestPermission = async () => (Notification.permission = options.grantNotifications === false ? 'denied' : 'granted');
-  let onGrumpy;
+  let onGrumpy, skin;
   const sandbox = {
     window, document, Date: Clock, navigator: { mediaSession, wakeLock }, MediaMetadata, Notification,
     localStorage: { getItem: k => saved.get(k) || null, setItem: (k, value) => saved.set(k, value) },
-    CapiMascot: { GRUMPY_TIME: 3200, create: (host, opts = {}) => { onGrumpy = opts.onGrumpy; return { update: value => { context = value; }, complete: () => celebrations++ }; } },
+    CapiMascot: { GRUMPY_TIME: 3200, create: (host, opts = {}) => { onGrumpy = opts.onGrumpy; return { update: value => { context = value; }, complete: () => celebrations++, setSkin: poses => { skin = poses; } }; } },
     matchMedia: () => ({ matches: true }), requestAnimationFrame: fn => fn(),
     setInterval(fn, ms) { intervals.set(++id, { fn, ms }); return id; }, clearInterval: key => intervals.delete(key),
     setTimeout(fn, ms) { timeouts.set(++id, { fn, at: now + ms }); return id; }, clearTimeout: key => timeouts.delete(key)
   };
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js/seasonal.js'), 'utf8'), sandbox);
+  sandbox.CapiSeason = window.CapiSeason;
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js/theme.js'), 'utf8'), sandbox);
   sandbox.CapiTheme = window.CapiTheme;
   runModules(APP_MODULES, sandbox);
@@ -89,9 +91,11 @@ module.exports = function createApp(saved = new Map(), options = {}) {
       for (const fn of docEvents.keydown || []) fn({ code, key: code === 'Space' ? ' ' : code, preventDefault() { prevented = true; } });
       document.activeElement = { tagName: 'BODY' }; return prevented;
     },
-    grumpy: () => onGrumpy(), now: () => now, locks, notifications, Notification,
+    grumpy: () => onGrumpy(), skin: () => skin, now: () => now, locks, notifications, Notification,
     get, tabs, saved, mediaSession, context: () => context, celebrations: () => celebrations,
     data: key => JSON.parse(saved.get(key)),
+    // muda o relógio do sistema sem passar tempo de verdade (ajuste de hora)
+    setClock(ms) { now += ms; },
     advance(ms) {
       now += ms;
       for (const { fn, ms: period } of [...intervals.values()]) if (period === 250) fn();

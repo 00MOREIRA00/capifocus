@@ -8,7 +8,9 @@
     noite:{nome:"Noite",pomo:["#3d3656","#3d3656"],short:["#2f3c58","#2f3c58"],long:["#4a3a5e","#4a3a5e"]},
     // Preto e Branco: a mesma cor em Pomodoro e nas pausas (#29)
     preto:{nome:"Preto",pomo:["#111111","#111111"],short:["#111111","#111111"],long:["#111111","#111111"]},
-    branco:{nome:"Branco",pomo:["#ffffff","#6f55ad"],short:["#ffffff","#6f55ad"],long:["#ffffff","#6f55ad"]}
+    branco:{nome:"Branco",pomo:["#ffffff","#6f55ad"],short:["#ffffff","#6f55ad"],long:["#ffffff","#6f55ad"]},
+    // tema de temporada: só aparece na lista durante o Halloween (ou para quem já escolheu)
+    abobora:{nome:"Abóbora",season:"halloween",pomo:["#d9692b","#7a3210"],short:["#6a4b9c","#3d2766"],long:["#3e5a3c","#2a4228"]}
   };
   function hexToHsl(h){const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255;
     const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let H=0,S=0;
@@ -28,17 +30,24 @@
   }
   // Mesma cor nos três modos: Pomodoro, pausa curta e pausa longa usam a cor do Pomodoro.
   function uniform(t){return{nome:t.nome,pomo:t.pomo,short:t.pomo,long:t.pomo};}
-  // Tema salvo -> cores de cada modo. Aceita {id, custom, same}; qualquer valor inválido cai na Lavanda.
-  function resolve(saved){
+  // Tema padrão de quem nunca escolheu um: o da temporada ativa (Abóbora no Halloween) ou a Lavanda.
+  function defaultId(season){
+    const S=window.CapiSeason,c=season&&S&&S.content(season);
+    return c&&c.theme&&THEMES[c.theme]?c.theme:"lavanda";
+  }
+  // Tema salvo -> cores de cada modo. Aceita {id, custom, same}; "auto", vazio ou inválido usa o tema padrão.
+  function resolve(saved,season){
     const valid=saved&&typeof saved==="object";
     const t=valid&&saved.id==="custom"&&/^#[0-9a-f]{6}$/i.test(saved.custom)?customTheme(saved.custom)
-      :(valid&&Object.prototype.hasOwnProperty.call(THEMES,saved.id)?THEMES[saved.id]:THEMES.lavanda);
+      :(valid&&saved.id!=="custom"&&Object.prototype.hasOwnProperty.call(THEMES,saved.id)?THEMES[saved.id]:THEMES[defaultId(season)]);
     return valid&&saved.same===true?uniform(t):t;
   }
-  window.CapiTheme={THEMES,customTheme,lum,uniform,resolve};
+  window.CapiTheme={THEMES,customTheme,lum,uniform,resolve,defaultId};
   let saved;
   try { saved=JSON.parse(localStorage.getItem('capi-theme') || 'null'); } catch (_) {}
-  const color=resolve(saved);
+  let season=null;
+  try { season=window.CapiSeason?window.CapiSeason.active():null; } catch (_) {}
+  const color=resolve(saved,season);
   const root=document.documentElement.style;
   ['pomo','short','long'].forEach(mode=>{
     root.setProperty('--bg-'+mode,color[mode][0]);

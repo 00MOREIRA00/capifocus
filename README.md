@@ -44,6 +44,7 @@ O projeto é feito em HTML, CSS e JavaScript puros, organizado em módulos ES. N
 - **Controles de mídia do sistema:** a Capi Rádio aparece na notificação e na tela de bloqueio do celular (Android), na central de mídia do Windows e do macOS e nos botões dos fones, com o nome da estação, o modo atual e botões de tocar, pausar e trocar de estação. No Android, a música continua tocando com o navegador minimizado.
 - **Alarme:** quatro sons (Sininho, Marimba, Capi jingle e Despertador), com número de repetições e volume próprios. A música abaixa sozinha enquanto o alarme toca.
 - **Tarefas:** lista com estimativa de pomodoros, tarefa ativa e previsão de horário de término. Mude a ordem arrastando o cartão (no celular, segure um instante antes de arrastar) ou, pelo teclado, com Alt+↑ e Alt+↓. Ao concluir uma tarefa, a capivara comemora com confete, um balão de parabéns e um somzinho.
+- **Temporada de Halloween:** de 24 de outubro a 1º de novembro o Capifocus se fantasia. Ganha a capivara de vampiro, a fonte de terror "Capi Terror" no logo, nos títulos e no timer, o tema Abóbora (padrão para quem nunca escolheu um tema), teias nos cantos e morcegos voando, doces no lugar do confete, frases temáticas, a estação "Transilvânia" na Capi Rádio (uma valsa gótica de vampiro) e os alarmes "Sino da meia-noite" e "Uivo de lobo". No dia 31 tem uma surpresa. Dá para desligar em Ajustes → Tema → "Decoração de Halloween", e depois da data tudo volta ao normal sozinho. Detalhes em [specs/halloween.md](specs/halloween.md).
 - **Temas de cor:** oito temas prontos (Lavanda, Menta, Oceano, Pôr do sol, Morango, Noite, Preto e Branco) ou qualquer cor em "Sua cor". Nos temas coloridos, cada modo ganha um tom próprio; Preto, Branco e "Sua cor" usam a mesma cor em todos os modos. A opção "Mesma cor no Pomodoro e nas pausas" deixa qualquer tema com uma cor só. Em fundos claros, textos e botões ficam escuros automaticamente.
 - **Ajustes:** duração de cada modo, pausa longa a cada N focos, início automático, tema de cor, alarme e notificação. Os tempos precisam fazer sentido entre si: a pausa curta não pode passar do Pomodoro e a pausa longa precisa ser maior que a curta. Se não fizerem, os ajustes não são salvos e o painel mostra o que corrigir.
 - **Tudo salvo no navegador:** tarefas, ajustes, tema, estatísticas e preferências de som ficam no `localStorage`. Nada é enviado para servidor nenhum.
@@ -119,7 +120,8 @@ capifocus/
 ├── sw.js                   service worker: cache offline e notificações
 ├── css/
 │   ├── app.css             estilos do app
-│   └── mascot.css          estilos do mascote
+│   ├── mascot.css          estilos do mascote
+│   └── seasonal.css        decoração das temporadas (Halloween)
 ├── js/
 │   ├── app.js              módulo principal: liga tudo à página
 │   ├── dom.js              seletor, armazenamento, criação de elementos e avisos
@@ -127,12 +129,14 @@ capifocus/
 │   ├── stats.js            estatísticas por dia (funções puras)
 │   ├── tasks.js            lista de tarefas e resumo
 │   ├── lofi.js             Capi Rádio (Web Audio API)
+│   ├── seasonal.js         temporadas: datas, textos e fantasias (carregado antes do tema)
 │   ├── theme.js            temas de cor, carregado antes para evitar piscar a cor
 │   └── components/mascot.js  componente do mascote
 ├── assets/
 │   ├── mascot/             seis poses da capivara e o rosto usado no ícone (PNG)
+│   │   └── halloween/      poses de vampiro (originais em halloween/originais/)
 │   ├── icons/              ícones do app, favicon e rosto do README
-│   └── fonts/              Fredoka e Nunito (woff2) com as licenças OFL
+│   └── fonts/              Fredoka, Nunito e Capi Terror (woff2) com as licenças OFL
 ├── tests/                  testes de regressão (Node.js, sem dependências)
 ├── specs/                  especificações e notas de release
 └── LICENSE                 licença MIT
@@ -152,6 +156,7 @@ O app está publicado em [rneto.dev.br/capifocus](https://rneto.dev.br/capifocus
 
 - **Tempos padrão:** procure `{pomo:25,short:5,long:15}` em `js/app.js`. As regras do ciclo e a validação dos tempos (`validateDurations`) ficam em `js/timer.js`.
 - **Cores:** pelo app, em Ajustes → Tema (inclusive "Sua cor" e "Mesma cor no Pomodoro e nas pausas"). No código, edite ou adicione temas na lista `THEMES`, em `js/theme.js`: cada tema define `[fundo, destaque]` para `pomo`, `short` e `long`.
+- **Temporadas:** datas, textos, doces, poses fantasiadas e favicon ficam em `js/seasonal.js`. Para o próximo ano, basta mudar as datas em `SEASONS`.
 - **Mascote:** as seis poses ficam em `assets/mascot/` e o mapa de imagens em `CapiMascot.assets`, em `js/components/mascot.js`.
 - **Estações:** cada estação fica no objeto `ST`, em `js/lofi.js`, com andamento (`bpm`), swing, efeitos, progressões de acordes (`progs`, em notas MIDI) e a função `play`, que define o que toca em cada passo do compasso. Para criar uma estação nova, copie uma existente e ajuste.
 
@@ -164,6 +169,7 @@ O app está publicado em [rneto.dev.br/capifocus](https://rneto.dev.br/capifocus
 - Web Audio API para o lo-fi e o alarme
 - Service worker e Web App Manifest para uso offline e instalação
 - Fontes [Fredoka](https://fonts.google.com/specimen/Fredoka) e [Nunito](https://fonts.google.com/specimen/Nunito), hospedadas no projeto (SIL Open Font License)
+- Fonte de Halloween "Capi Terror", versão da [Creepster](https://fonts.google.com/specimen/Creepster) com números de largura igual, renomeada como pede a licença (SIL Open Font License)
 
 ## Mascote 2.0
 
@@ -194,7 +200,7 @@ Não precisa executar `npm install`, iniciar o servidor do app ou abrir o navega
 Se tudo passar, o resultado termina com:
 
 ```text
-7/7 test files passed
+8/8 test files passed
 ```
 
 Se algum teste falhar, o terminal mostra o cenário, o resultado esperado e o resultado obtido. O comando termina com código de saída diferente de zero. Corrija a falha e execute novamente antes de publicar a alteração.
@@ -220,6 +226,9 @@ node tests/stats.test.cjs
 # Tema salvo aplicado antes da página aparecer (js/theme.js)
 node tests/theme.test.cjs
 
+# Temporadas: datas do Halloween, preferência e classe no <html> (js/seasonal.js)
+node tests/seasonal.test.cjs
+
 # Caminhos, módulos, fontes, manifest e cache offline sob /capifocus/
 node tests/static-paths.test.cjs
 ```
@@ -232,6 +241,6 @@ Os testes verificam lógica, estados e persistência com DOM simulado. Layout, a
 
 ## Licença
 
-O código do Capifocus está sob a [licença MIT](LICENSE). As fontes Fredoka e Nunito seguem a SIL Open Font License, com os textos em `assets/fonts/`.
+O código do Capifocus está sob a [licença MIT](LICENSE). As fontes Fredoka, Nunito e Capi Terror (baseada na Creepster) seguem a SIL Open Font License, com os textos em `assets/fonts/`.
 
 Feito com calma de capivara. 🦫

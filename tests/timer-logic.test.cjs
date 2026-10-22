@@ -69,3 +69,15 @@ test('#28: pausa curta não passa do Pomodoro e é menor que a longa', () => {
   assert.equal(fields({ pomo: 10, short: 20, long: 5 }), 'short,long');
   assert.match(T.validateDurations({ pomo: 10, short: 20, long: 30 })[0].message, /pausa curta/);
 });
+
+test('relógio do sistema que volta não aumenta o tempo restante', () => {
+  const now = 10_000_000, endAt = now + 600_000;            // 10 min restantes
+  assert.deepEqual(plain(T.syncLeft({ endAt, now: now + 1000, total: 1500, left: 600 })), { left: 599, endAt });
+  // relógio voltou 2h22: continua em 10:00 e o fim é recalculado
+  const back = now - 8_520_000;
+  assert.deepEqual(plain(T.syncLeft({ endAt, now: back, total: 1500, left: 600 })), { left: 600, endAt: back + 600_000 });
+  // fim salvo além da duração da etapa também é corrigido
+  assert.equal(T.syncLeft({ endAt: now + 9_000_000, now, total: 1500, left: 1500 }).left, 1500);
+  const r = T.restoreState({ mode: 'pomo', total: 1500, left: 1200, running: true, endAt: now + 10_000_000 }, { pomo: 25 }, now);
+  assert.equal(r.left, 1200); assert.equal(r.endAt, now + 1_200_000); assert.equal(r.running, true);
+});

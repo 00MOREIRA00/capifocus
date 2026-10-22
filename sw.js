@@ -1,15 +1,17 @@
 // Service worker do Capifocus (#19): deixa o app instalável e funcionando offline.
 // Estratégia "rede primeiro": online, sempre busca a versão mais nova (e atualiza o cache);
 // offline, usa o que ficou guardado. Assim uma versão antiga nunca fica presa no aparelho.
-const CACHE = "capifocus-v1.11.0";
+const CACHE = "capifocus-v1.12.0";
 const ASSETS = [
   "./",
   "index.html",
   "manifest.json",
   "css/app.css",
   "css/mascot.css",
+  "css/seasonal.css",
   "js/theme.js",
   "js/components/mascot.js",
+  "js/seasonal.js",
   "js/app.js",
   "js/dom.js",
   "js/timer.js",
@@ -18,6 +20,7 @@ const ASSETS = [
   "js/lofi.js",
   "assets/fonts/Nunito.woff2",
   "assets/fonts/Fredoka.woff2",
+  "assets/fonts/CapiTerror.woff2",
   "assets/icons/icon-192.png",
   "assets/icons/icon-512.png",
   "assets/icons/icon-maskable-512.png",

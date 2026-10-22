@@ -10,8 +10,10 @@
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <title>Capifocus</title>
+<script src="js/seasonal.js"></script>
 <script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/seasonal.css">
 <link rel="stylesheet" href="css/mascot.css">
 <link rel="preload" href="assets/mascot/capy-default.png" as="image">
 
@@ -54,9 +56,10 @@
       <button class="tnav next" id="th-next" type="button" aria-label="Próximos temas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
     <label class="switch" for="theme-same"><input id="theme-same" type="checkbox"> Mesma cor no Pomodoro e nas pausas</label>
+    <label class="switch" for="season-on" id="season-row" hidden><input id="season-on" type="checkbox"> <span id="season-label">Decoração de Halloween</span></label>
     <h3>Alarme</h3>
     <div class="arow">
-      <label for="al-sound">Som<select id="al-sound"><option value="sino">Sininho</option><option value="marimba">Marimba</option><option value="capi">Capi jingle</option><option value="despertador">Despertador</option></select></label>
+      <label for="al-sound">Som<select id="al-sound"><option value="sino">Sininho</option><option value="marimba">Marimba</option><option value="capi">Capi jingle</option><option value="despertador">Despertador</option><option value="meianoite" data-season="halloween" hidden disabled>Sino da meia-noite</option><option value="uivo" data-season="halloween" hidden disabled>Uivo de lobo</option></select></label>
       <label for="al-rep">Repetir<input id="al-rep" type="number" min="1" max="10" value="3"></label>
       <label for="al-vol">Volume<input id="al-vol" type="range" min="0" max="100" value="80"></label>
       <button class="btn-test" id="al-test" type="button">Testar</button>

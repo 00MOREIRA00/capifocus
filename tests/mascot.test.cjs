@@ -34,7 +34,7 @@ async function run() {
   const M = sandbox.window.CapiMascot;
   for (const mode of ['pomo', 'short', 'long']) {
     for (const playing of [false, true]) {
-      assert.equal(M.resolve({ mode, running: true, playing }), mode === 'pomo' ? 'focus' : 'break');
+      assert.equal(M.resolve({ mode, running: true, playing }), mode === 'pomo' ? 'focus' : mode === 'long' ? 'long' : 'break');
       assert.equal(M.resolve({ mode, running: false, playing }), playing ? 'radio' : 'default');
       assert.equal(M.resolve({ mode, running: true, playing, completed: true }), 'completed');
     }
@@ -70,7 +70,7 @@ async function run() {
   let failedView;
   M.create({ querySelector: () => null, insertBefore(v) { failedView = v; } });
   images[initialCount].onerror();
-  assert.equal(failedView.children.length, 6, 'only the six poses exist after network failure');
+  assert.equal(failedView.children.length, 7, 'only the seven poses exist after network failure');
   assert.equal(failedView.dataset.state, undefined, 'no old mascot appears on failure');
   await images[initialCount].onload();
   assert.equal(failedView.dataset.state, 'default', 'new pose appears after successful retry');
@@ -79,14 +79,14 @@ async function run() {
   M.create({ querySelector: () => null, insertBefore(v) { decodeView = v; } });
   images[decodeIndex].decode = async () => { throw new Error('invalid image'); };
   await images[decodeIndex].onload();
-  assert.equal(decodeView.children.length, 6);
+  assert.equal(decodeView.children.length, 7);
   assert.equal(decodeView.dataset.state, undefined, 'no old mascot appears on decoding failure');
   // #8: cliques seguidos deixam a capivara bolada por um tempo, e só cliques rápidos contam
   assert.equal(M.resolve({ grumpy: true, completed: true, running: true }), 'rabugenta');
   let clock = 0, outbursts = 0, grumpyView;
   reduced = false;
   M.create({ querySelector: () => null, insertBefore(v) { grumpyView = v; } }, { now: () => clock, onGrumpy: () => outbursts++ });
-  for (const img of images.slice(-6)) await img.onload();
+  for (const img of images.slice(-7)) await img.onload();
   timers.clear();
   for (let i = 0; i < M.GRUMPY_CLICKS - 1; i++) { grumpyView.events.click(); clock += 300; }
   clock += M.GRUMPY_WINDOW;                       // pausa longa: os cliques antigos não contam mais
@@ -102,6 +102,21 @@ async function run() {
   reduced = true;
   for (let i = 0; i < M.GRUMPY_CLICKS; i++) grumpyView.events.click();
   assert.equal(outbursts, 2, 'movimento reduzido ainda mostra a reação, sem animação');
+  // pausa longa usa a imagem da pausa curta até existir uma fantasia própria
+  assert.equal(M.assets.long, M.assets.break);
+  // fantasia de temporada: troca só as poses informadas e volta ao normal depois
+  const skinStart = images.length;
+  let skinView;
+  const skinned = M.create({ querySelector: () => null, insertBefore(v) { skinView = v; } });
+  const skinImgs = images.slice(skinStart);
+  for (const img of skinImgs) await img.onload();
+  const byPose = pose => skinImgs.find(img => img.dataset.pose === pose);
+  skinned.setSkin({ focus: 'assets/mascot/halloween/capy-focus.png' });
+  assert.equal(byPose('focus').src, 'assets/mascot/halloween/capy-focus.png');
+  assert.equal(byPose('focus').dataset.ready, 'false', 'nova imagem precisa carregar antes de aparecer');
+  assert.equal(byPose('default').src, M.assets.default, 'poses sem fantasia continuam iguais');
+  skinned.setSkin({});
+  assert.equal(byPose('focus').src, M.assets.focus, 'sem temporada, volta para a pose normal');
   for (const src of Object.values(M.assets)) assert(fs.existsSync(src));
   const html = fs.readFileSync('index.html', 'utf8');
   assert(!/<svg class="capy"/.test(html), 'old mascot removed from HTML');

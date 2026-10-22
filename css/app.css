@@ -80,7 +80,8 @@ header{z-index:60}
 .capy{width:230px;max-width:100%;height:auto}
 .count{font-weight:700;color:var(--ink-soft);font-size:15px}
 .msg{font-weight:600;font-size:18px}
-.msg,.task .nt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+/* nomes em até 2 linhas: o corte fica no contêiner (.name); o texto (.nt) segue em linha para o risco acompanhar só as palavras */
+.msg,.task .name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 .tasks-head{gap:12px;flex-wrap:wrap}
 #nt-remaining{font-size:12px;color:#6d5f86}
 .toast.show{pointer-events:auto}
@@ -140,7 +141,7 @@ body.long.running .float:nth-of-type(2){animation-delay:.7s}
 .task .chk{flex:none;width:24px;height:24px;border-radius:50%;border:0;background:#ddd6ec;cursor:pointer;display:grid;place-items:center;color:#fff}
 .task.done .chk{background:var(--accent-ink)}
 .task .name{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere}
-.task .nt{background:linear-gradient(currentColor,currentColor) 0 55%/0 2px no-repeat;transition:background-size .45s ease,opacity .45s ease}
+.task .nt{background:linear-gradient(currentColor,currentColor) 0 55%/0 2px no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-size .45s ease,opacity .45s ease}
 .task.done .nt{background-size:100% 2px;opacity:.5}
 .task.just-done .nt{background-size:0 2px;opacity:1;animation:strike .5s .1s ease forwards}
 @keyframes strike{to{background-size:100% 2px;opacity:.5}}
@@ -172,6 +173,7 @@ form.newtask label{font-weight:700;font-size:14px;display:flex;align-items:cente
 form.newtask input[type=number]{width:70px;font:700 15px var(--body);background:#efebf6;border:0;border-radius:6px;padding:8px;color:#4a3d63}
 .frow{display:flex;justify-content:flex-end;gap:8px}
 .btn-ghost{font:700 14px var(--body);background:none;border:0;color:#8c80a3;cursor:pointer;padding:8px 12px}
+.tasks-head .btn-ghost{color:var(--ink-soft)}   /* no fundo do tema, usa a cor de texto dele */
 .btn-dark{font:700 14px var(--body);background:#3f3456;color:#fff;border:0;border-radius:6px;cursor:pointer;padding:8px 16px}
 .summary{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;background:rgba(255,255,255,.12);border-top:1px solid rgba(255,255,255,.4);padding:14px;border-radius:0 0 8px 8px;font-weight:600;color:var(--ink-soft)}
 .summary b{color:var(--ink);font-size:18px;font-variant-numeric:tabular-nums}

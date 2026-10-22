@@ -1,0 +1,36 @@
+/* Temporadas (#halloween): tudo vale só com a classe da temporada no <html>, colocada por js/seasonal.js. */
+
+/* Fonte de Halloween: "Capi Terror", versão da Creepster com números de largura igual (assets/fonts/OFL-CapiTerror.txt).
+   O navegador só baixa a fonte quando algum elemento a usa, ou seja, só durante a temporada. */
+@font-face{font-family:"Capi Terror";src:url("../assets/fonts/CapiTerror.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+html.season-halloween .logo,
+html.season-halloween .time,
+html.season-halloween .tab,
+html.season-halloween h2,
+html.season-halloween .cheer{font-family:"Capi Terror",var(--display);font-weight:400;font-synthesis:none}
+html.season-halloween .logo{font-size:24px;letter-spacing:1px}
+html.season-halloween .time{letter-spacing:3px}
+html.season-halloween .tab{letter-spacing:.6px}
+html.season-halloween h2{letter-spacing:.8px}
+html.season-halloween .cheer{letter-spacing:.6px}
+
+/* camada de decoração: atrás do conteúdo, sem bloquear cliques */
+.season-deco{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.season-deco .web{position:absolute;width:min(34vw,170px);aspect-ratio:1;opacity:.2;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 150' fill='none' stroke='white' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M0 0L150.0 0.0M0 0L144.9 38.8M0 0L127.2 79.5M0 0L96.4 114.9M0 0L56.2 139.1M0 0L0.0 150.0'/%3E%3Cpath d='M28.0 0.0Q23.7 3.1 27.0 7.2Q21.8 9.5 23.7 14.8Q17.9 15.6 18.0 21.4Q12.2 20.4 10.5 26.0Q4.5 23.2 0.0 28.0M52.0 0.0Q44.0 5.8 50.2 13.5Q40.6 17.6 44.1 27.6Q33.3 29.0 33.4 39.8Q22.7 37.9 19.5 48.2Q8.4 43.1 0.0 52.0M78.0 0.0Q65.9 8.7 75.3 20.2Q60.8 26.5 66.1 41.3Q50.0 43.5 50.1 59.8Q34.1 56.8 29.2 72.3Q12.6 64.6 0.0 78.0M104.0 0.0Q87.9 11.6 100.5 26.9Q81.1 35.3 88.2 55.1Q66.7 58.0 66.8 79.7Q45.5 75.7 39.0 96.4Q16.8 86.2 0.0 104.0M132.0 0.0Q111.6 14.7 127.5 34.2Q103.0 44.8 111.9 69.9Q84.6 73.6 84.8 101.1Q57.7 96.1 49.4 122.4Q21.3 109.4 0.0 132.0' stroke-width='1'/%3E%3C/svg%3E")}
+.season-deco .web-tl{top:0;left:0}
+.season-deco .web-br{right:0;bottom:0;transform:rotate(180deg)}
+.season-bats{position:fixed;inset:0;z-index:40;pointer-events:none;overflow:hidden}
+.bat-fly{position:absolute;left:0;top:0;will-change:transform;filter:drop-shadow(0 0 1.5px rgba(255,255,255,.6))}   /* contorno no wrapper: a máscara do .bat cortaria a sombra */
+.bat{display:block;width:58px;aspect-ratio:100/34;background:#1d1328;opacity:.85;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 34'%3E%3Cpath d='M50 14L47 6L45 13Q41 12 38 15Q30 6 16 6Q22 11 20 17Q12 14 4 17Q12 20 13 27Q20 21 28 24Q31 18 38 20Q42 26 50 30Q58 26 62 20Q69 18 72 24Q80 21 87 27Q88 20 96 17Q88 14 80 17Q78 11 84 6Q70 6 62 15Q59 12 55 13L53 6L50 14Z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 34'%3E%3Cpath d='M50 14L47 6L45 13Q41 12 38 15Q30 6 16 6Q22 11 20 17Q12 14 4 17Q12 20 13 27Q20 21 28 24Q31 18 38 20Q42 26 50 30Q58 26 62 20Q69 18 72 24Q80 21 87 27Q88 20 96 17Q88 14 80 17Q78 11 84 6Q70 6 62 15Q59 12 55 13L53 6L50 14Z'/%3E%3C/svg%3E") center/contain no-repeat;
+  animation:bat-flap .22s ease-in-out infinite alternate}
+@keyframes bat-flap{from{transform:scaleY(1)}to{transform:scaleY(.55)}}
+
+/* doces no lugar do confete */
+.confetti.candy{width:auto;height:auto;background:none;border-radius:0;font-size:20px;line-height:1}
+
+/* balão da comemoração um pouco mais assombrado */
+html.season-halloween .cheer{background:#2b1d38;color:#ffd9a8}
+html.season-halloween .cheer::after{border-top-color:#2b1d38}
+
+@media(prefers-reduced-motion:reduce){.bat{display:none}}
